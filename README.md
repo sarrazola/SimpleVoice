@@ -14,9 +14,9 @@ Herramienta simple de transcripción de voz en la terminal usando OpenAI Whisper
    pip install -r requirements.txt
    ```
    
-   **Nota**: En macOS, si tienes problemas con pyaudio, puedes instalarlo con:
+   **Nota**:  En macOS, si tienes problemas con pyaudio, puedes instalarlo con:
    ```bash
-   brew install portaudio
+   brew install portaudio 
    pip install pyaudio
    ```
    
