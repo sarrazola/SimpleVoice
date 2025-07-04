@@ -10,8 +10,12 @@ import time
 import threading
 import logging
 import tempfile
-import numpy as np
+import warnings
 from pathlib import Path
+
+# Silenciar warnings de Whisper para mejor UX
+warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Configurar logging con muchos detalles
 logging.basicConfig(
@@ -30,6 +34,7 @@ try:
     import whisper
     import pyperclip
     from pynput import keyboard
+    import subprocess
     logger.info("✅ Todas las dependencias importadas correctamente")
 except ImportError as e:
     logger.error(f"❌ Error importando dependencias: {e}")
@@ -46,6 +51,7 @@ class SimpleVoiceRecorder:
         self.whisper_model = None
         self.recording_thread = None
         self.audio_data = []
+        self.start_time = None
         
         logger.info("🎙️  Inicializando SimpleVoice...")
         logger.info(f"📁 Directorio temporal: {self.temp_dir}")
@@ -65,7 +71,8 @@ class SimpleVoiceRecorder:
         """Cargar modelo Whisper"""
         try:
             logger.info("🤖 Cargando modelo Whisper 'turbo'...")
-            self.whisper_model = whisper.load_model("turbo")
+            # Cargar modelo con configuración optimizada
+            self.whisper_model = whisper.load_model("turbo", device="cpu")
             logger.info("✅ Modelo Whisper cargado exitosamente")
         except Exception as e:
             logger.error(f"❌ Error cargando modelo Whisper: {e}")
@@ -78,8 +85,14 @@ class SimpleVoiceRecorder:
             return
             
         logger.info("🎵 INICIANDO GRABACIÓN...")
+        print("🎤 Grabando... (presiona F12 para parar)")
+        
+        # Notificación para empezar a hablar
+        self.send_notification("🎤 Grabando", "¡Habla ahora! Presiona F12 para parar", 2)
+        
         self.is_recording = True
         self.audio_data = []
+        self.start_time = time.time()
         
         # Iniciar grabación en hilo separado
         self.recording_thread = threading.Thread(target=self._record_audio)
@@ -94,6 +107,14 @@ class SimpleVoiceRecorder:
         logger.info("🛑 PARANDO GRABACIÓN...")
         self.is_recording = False
         
+        # Calcular tiempo de grabación
+        if self.start_time:
+            duration = time.time() - self.start_time
+            print(f"⏹️  Grabación terminada ({duration:.1f}s)")
+        
+        # Notificación de procesamiento
+        self.send_notification("🤖 Procesando", "Transcribiendo audio...", 3)
+        
         # Esperar a que termine el hilo de grabación
         if self.recording_thread:
             self.recording_thread.join()
@@ -107,8 +128,6 @@ class SimpleVoiceRecorder:
     def _record_audio(self):
         """Grabar audio continuamente"""
         try:
-            logger.info(f"🎤 Grabando audio a {self.sample_rate}Hz...")
-            
             # Configurar stream de audio
             stream = self.audio.open(
                 format=pyaudio.paInt16,
@@ -117,8 +136,6 @@ class SimpleVoiceRecorder:
                 input=True,
                 frames_per_buffer=self.chunk_size
             )
-            
-            logger.info("🎙️  Stream de audio abierto, grabando...")
             
             while self.is_recording:
                 try:
@@ -132,7 +149,6 @@ class SimpleVoiceRecorder:
             # Cerrar stream
             stream.stop_stream()
             stream.close()
-            logger.info("🎙️  Stream de audio cerrado")
             
         except Exception as e:
             logger.error(f"❌ Error durante grabación: {e}")
@@ -141,8 +157,6 @@ class SimpleVoiceRecorder:
     def _process_audio(self):
         """Procesar audio grabado con Whisper"""
         try:
-            logger.info("🔄 Procesando audio...")
-            
             if not self.audio_data:
                 logger.warning("⚠️  No hay datos de audio para procesar")
                 return
@@ -150,7 +164,6 @@ class SimpleVoiceRecorder:
             # Combinar todos los chunks de audio
             audio_bytes = b''.join(self.audio_data)
             duration = len(audio_bytes) / (self.sample_rate * self.channels * 2)  # 2 bytes per sample (paInt16)
-            logger.info(f"📊 Audio capturado: {len(audio_bytes)} bytes, {duration:.2f} segundos")
             
             # Guardar audio temporal como WAV
             temp_file = os.path.join(self.temp_dir, "temp_audio.wav")
@@ -161,12 +174,30 @@ class SimpleVoiceRecorder:
                 wav_file.setframerate(self.sample_rate)
                 wav_file.writeframes(audio_bytes)
             
-            logger.info(f"💾 Audio guardado en: {temp_file}")
-            
             # Transcribir con Whisper
             logger.info("🤖 Transcribiendo con Whisper...")
-            result = self.whisper_model.transcribe(temp_file, language="es")
+            print("⏳ Procesando audio...", end="", flush=True)
             
+            # Configuración optimizada para mejor rendimiento
+            result = self.whisper_model.transcribe(
+                temp_file,
+                language="es",
+                fp16=False,  # Forzar FP32 para evitar warnings
+                verbose=False,  # Reducir output verboso
+                temperature=0.0,  # Más determinístico
+                best_of=1,  # Reducir complejidad
+                beam_size=1,  # Más rápido
+                patience=1.0,
+                length_penalty=1.0,
+                suppress_tokens="",
+                initial_prompt=None,
+                condition_on_previous_text=False,
+                compression_ratio_threshold=2.4,
+                logprob_threshold=-1.0,
+                no_speech_threshold=0.6
+            )
+            
+            print("\r✅ Transcripción completada!    ")
             transcription = result["text"].strip()
             logger.info(f"📝 Transcripción: '{transcription}'")
             
@@ -174,6 +205,9 @@ class SimpleVoiceRecorder:
                 # Copiar al portapapeles
                 pyperclip.copy(transcription)
                 logger.info("📋 ✅ Transcripción copiada al portapapeles")
+                
+                # Notificación de copiado
+                self.send_notification("📋 ¡Listo!", f"Transcripción copiada: {transcription[:50]}{'...' if len(transcription) > 50 else ''}", 4)
                 
                 # Mostrar resultado
                 print("\n" + "="*50)
@@ -197,6 +231,17 @@ class SimpleVoiceRecorder:
             self.stop_recording()
         else:
             self.start_recording()
+    
+    def send_notification(self, title, message, timeout=3):
+        """Enviar notificación del sistema usando osascript nativo de macOS"""
+        try:
+            # Usar osascript para notificaciones nativas de macOS
+            script = f'''
+            display notification "{message}" with title "SimpleVoice" subtitle "{title}"
+            '''
+            subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+        except Exception as e:
+            logger.warning(f"⚠️ Error enviando notificación: {e}")
     
     def cleanup(self):
         """Limpiar recursos"""
@@ -226,12 +271,19 @@ def main():
             if key == keyboard.Key.f12:
                 logger.info("🔥 F12 presionado!")
                 recorder.toggle_recording()
+        except AttributeError:
+            # Ignorar teclas especiales que no podemos procesar
+            pass
         except Exception as e:
             logger.error(f"❌ Error en captura de tecla: {e}")
     
+    def on_key_release(key):
+        # Manejar liberación de teclas para evitar escape sequences
+        pass
+    
     # Iniciar listener de teclas
     logger.info("⌨️  Iniciando captura de teclas...")
-    with keyboard.Listener(on_press=on_key_press) as listener:
+    with keyboard.Listener(on_press=on_key_press, on_release=on_key_release, suppress=False) as listener:
         try:
             print("\n" + "="*60)
             print("🎙️  SIMPLE VOICE - TRANSCRIPCIÓN DE VOZ")
