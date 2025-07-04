@@ -19,6 +19,8 @@ Herramienta simple de transcripción de voz en la terminal usando OpenAI Whisper
    brew install portaudio
    pip install pyaudio
    ```
+   
+   **Notificaciones**: Las notificaciones usan `osascript` nativo de macOS, sin dependencias adicionales.
 
 ## Uso
 
@@ -33,11 +35,13 @@ Herramienta simple de transcripción de voz en la terminal usando OpenAI Whisper
 
 3. **Flujo de trabajo**:
    1. Presiona F12 para empezar a grabar
-   2. Habla lo que quieras transcribir
-   3. Presiona F12 de nuevo para parar
-   4. El texto se transcribe automáticamente
-   5. Se copia al portapapeles
-   6. Se muestra en la terminal
+   2. Aparece notificación: "🎤 Grabando - ¡Habla ahora!"
+   3. Habla lo que quieras transcribir
+   4. Presiona F12 de nuevo para parar
+   5. Aparece notificación: "🤖 Procesando - Transcribiendo audio..."
+   6. El texto se transcribe automáticamente
+   7. Aparece notificación: "📋 ¡Listo! - Transcripción copiada"
+   8. Se muestra en la terminal
 
 ## Características
 
@@ -48,6 +52,7 @@ Herramienta simple de transcripción de voz en la terminal usando OpenAI Whisper
 - ✅ Logs detallados con emojis
 - ✅ Interfaz simple de terminal
 - ✅ Compatible con macOS (PyAudio en lugar de SoundDevice)
+- ✅ Notificaciones nativas de macOS para estados de grabación
 
 ## Requisitos
 
