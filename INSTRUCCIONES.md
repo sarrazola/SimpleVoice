@@ -109,7 +109,7 @@ python main_gui.py
   - **❌ Salir**: Cerrar completamente la aplicación
   - **Sincronización**: Estado se actualiza automáticamente con F12
 - **🌍 Selección de Idioma**: Dropdown con 15+ idiomas soportados
-  - **Auto-detección**: Whisper detecta automáticamente el idioma
+  - **Auto-detección** (por defecto): Whisper detecta automáticamente el idioma
   - **Cambio inmediato**: Sin necesidad de reiniciar la aplicación
   - **Idiomas incluidos**: Español, Inglés, Francés, Alemán, Italiano, Portugués, Japonés, Coreano, Chino, Ruso, Holandés, Sueco, Noruego, Danés
 

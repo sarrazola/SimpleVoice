@@ -226,7 +226,7 @@ class SimpleVoiceGUI:
             height=28,
             command=self.on_language_change
         )
-        self.language_dropdown.set("🇪🇸 Español")  # Valor por defecto
+        self.language_dropdown.set("🌐 Auto-detectar")  # Valor por defecto
         self.language_dropdown.grid(row=2, column=2, pady=(0, 15), sticky="w", padx=20)
         
     def on_language_change(self, selection):
@@ -241,7 +241,7 @@ class SimpleVoiceGUI:
     def get_selected_language(self):
         """Obtener el código del idioma seleccionado"""
         current_selection = self.language_dropdown.get()
-        return self.language_options.get(current_selection, "es")
+        return self.language_options.get(current_selection, None)
         
     def setup_recording_controls(self, parent):
         """Configurar controles de grabación"""

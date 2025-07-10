@@ -30,13 +30,13 @@ except ImportError as e:
     raise
 
 class VoiceRecorder:
-    def __init__(self, log_callback: Optional[Callable] = None, language: str = "es"):
+    def __init__(self, log_callback: Optional[Callable] = None, language: Optional[str] = None):
         """
         Inicializar el grabador de voz
         
         Args:
             log_callback: Función para enviar logs a la GUI
-            language: Código de idioma para transcripción (ej: "es", "en", None para auto-detectar)
+            language: Código de idioma para transcripción (ej: "es", "en") o None para auto-detectar (por defecto)
         """
         self.is_recording = False
         self.sample_rate = 16000
