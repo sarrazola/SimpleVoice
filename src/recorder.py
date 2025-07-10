@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SimpleVoice - Módulo de Grabación y Transcripción
-Lógica separada para facilitar integración con GUI
+SimpleVoice - Recording and Transcription Module
+Separate logic to facilitate GUI integration
 """
 
 import os
@@ -26,18 +26,18 @@ try:
     import pyperclip
     import subprocess
 except ImportError as e:
-    logging.error(f"❌ Error importando dependencias: {e}")
+    logging.error(f"❌ Error importing dependencies: {e}")
     raise
 
 class VoiceRecorder:
     def __init__(self, log_callback: Optional[Callable] = None, language: Optional[str] = None, model: str = "turbo"):
         """
-        Inicializar el grabador de voz
+        Initialize the voice recorder
         
         Args:
-            log_callback: Función para enviar logs a la GUI
-            language: Código de idioma para transcripción (ej: "es", "en") o None para auto-detectar (por defecto)
-            model: Modelo de Whisper a usar (tiny, base, small, medium, large, turbo)
+            log_callback: Function to send logs to the GUI
+            language: Language code for transcription (e.g., "es", "en") or None for auto-detect (default)
+            model: Whisper model to use (tiny, base, small, medium, large, turbo)
         """
         self.is_recording = False
         self.sample_rate = 16000
@@ -49,37 +49,37 @@ class VoiceRecorder:
         self.audio_data = []
         self.start_time = None
         self.log_callback = log_callback
-        self.language = language  # Idioma para transcripción
-        self.model_name = model  # Modelo de Whisper
+        self.language = language  # Language for transcription
+        self.model_name = model  # Whisper model
         
         # Configurar logging
         self.setup_logging()
         
-        self.log("🎙️  Inicializando SimpleVoice...")
-        self.log(f"📁 Directorio temporal: {self.temp_dir}")
+        self.log("🎙️  Initializing SimpleVoice...")
+        self.log(f"📁 Temporary directory: {self.temp_dir}")
         
         # Inicializar PyAudio
         self.audio = pyaudio.PyAudio()
-        self.log("🎤 PyAudio inicializado")
+        self.log("🎤 PyAudio initialized")
         
         # Cargar modelo Whisper
         self.load_whisper_model()
         
         # Registrar configuración
-        lang_text = "🌐 Auto-detectar" if language is None else f"🌍 {language.upper()}"
-        self.log(f"🗣️  Idioma configurado: {lang_text}")
-        self.log(f"🤖 Modelo configurado: {model.upper()}")
+        lang_text = "🌐 Auto-detect" if language is None else f"🌍 {language.upper()}"
+        self.log(f"🗣️  Language configured: {lang_text}")
+        self.log(f"🤖 Model configured: {model.upper()}")
         
-        self.log("🚀 SimpleVoice listo para usar!")
+        self.log("🚀 SimpleVoice ready to use!")
         
     def setup_logging(self):
-        """Configurar logging a archivo y callback"""
+        """Configure logging to file and callback"""
         logs_dir = Path.home() / "SimpleVoice" / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
         
         log_file = logs_dir / f"simplevoice_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         
-        # Configurar logging a archivo
+        # Configure file logging
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -93,8 +93,8 @@ class VoiceRecorder:
         self.log_file_path = log_file
         
     def log(self, message: str, level: str = "INFO"):
-        """Enviar log tanto a archivo como a callback GUI"""
-        # Log a archivo
+        """Send log both to file and GUI callback"""
+        # Log to file
         if level == "ERROR":
             self.logger.error(message)
         elif level == "WARNING":
@@ -102,95 +102,95 @@ class VoiceRecorder:
         else:
             self.logger.info(message)
         
-        # Enviar a GUI si hay callback
+        # Send to GUI if callback exists
         if self.log_callback:
             self.log_callback(message)
             
     def load_whisper_model(self):
-        """Cargar modelo Whisper"""
+        """Load Whisper model"""
         try:
-            self.log(f"🤖 Cargando modelo Whisper '{self.model_name}'...")
+            self.log(f"🤖 Loading Whisper model '{self.model_name}'...")
             self.whisper_model = whisper.load_model(self.model_name, device="cpu")
-            self.log(f"✅ Modelo Whisper '{self.model_name}' cargado exitosamente")
+            self.log(f"✅ Whisper model '{self.model_name}' loaded successfully")
         except Exception as e:
-            self.log(f"❌ Error cargando modelo Whisper '{self.model_name}': {e}", "ERROR")
+            self.log(f"❌ Error loading Whisper model '{self.model_name}': {e}", "ERROR")
             raise
     
     def set_language(self, language_code: Optional[str]):
         """
-        Cambiar el idioma de transcripción
+        Change the transcription language
         
         Args:
-            language_code: Código de idioma ("es", "en", etc.) o None para auto-detectar
+            language_code: Language code ("es", "en", etc.) or None for auto-detect
         """
         self.language = language_code
-        lang_text = "🌐 Auto-detectar" if language_code is None else f"🌍 {language_code.upper()}"
-        self.log(f"🗣️  Idioma actualizado: {lang_text}")
+        lang_text = "🌐 Auto-detect" if language_code is None else f"🌍 {language_code.upper()}"
+        self.log(f"🗣️  Language updated: {lang_text}")
         
     def set_model(self, model_name: str):
         """
-        Cambiar el modelo de Whisper
+        Change the Whisper model
         
         Args:
-            model_name: Nombre del modelo (tiny, base, small, medium, large, turbo)
+            model_name: Model name (tiny, base, small, medium, large, turbo)
         """
         self.model_name = model_name
-        self.log(f"🤖 Modelo actualizado: {model_name.upper()}")
-        # Nota: El modelo se carga externamente desde la GUI para mostrar progreso
+        self.log(f"🤖 Model updated: {model_name.upper()}")
+        # Note: The model is loaded externally from the GUI to show progress
     
     def start_recording(self):
-        """Iniciar grabación de audio"""
+        """Start audio recording"""
         if self.is_recording:
-            self.log("⚠️  Ya se está grabando", "WARNING")
+            self.log("⚠️  Already recording", "WARNING")
             return False
             
-        self.log("🎵 INICIANDO GRABACIÓN...")
+        self.log("🎵 STARTING RECORDING...")
         
-        # Notificación de inicio
-        self.send_notification("🎤 Grabando", "¡Habla ahora! Presiona F12 para parar", 2)
+        # Start notification
+        self.send_notification("🎤 Recording", "Speak now! Press F12 to stop", 2)
         
         self.is_recording = True
         self.audio_data = []
         self.start_time = time.time()
         
-        # Iniciar grabación en hilo separado
+        # Start recording in separate thread
         self.recording_thread = threading.Thread(target=self._record_audio)
         self.recording_thread.start()
         
         return True
         
     def stop_recording(self):
-        """Parar grabación y procesar audio"""
+        """Stop recording and process audio"""
         if not self.is_recording:
-            self.log("⚠️  No se está grabando", "WARNING")
+            self.log("⚠️  Not recording", "WARNING")
             return None
             
-        self.log("🛑 PARANDO GRABACIÓN...")
+        self.log("🛑 STOPPING RECORDING...")
         self.is_recording = False
         
-        # Calcular tiempo de grabación
+        # Calculate recording duration
         if self.start_time:
             duration = time.time() - self.start_time
-            self.log(f"⏹️  Grabación terminada ({duration:.1f}s)")
+            self.log(f"⏹️  Recording finished ({duration:.1f}s)")
         
-        # Notificación de procesamiento
-        self.send_notification("🤖 Procesando", "Transcribiendo audio...", 3)
+        # Processing notification
+        self.send_notification("🤖 Processing", "Transcribing audio...", 3)
         
-        # Esperar a que termine el hilo de grabación
+        # Wait for recording thread to finish
         if self.recording_thread:
             self.recording_thread.join()
             
-        # Procesar audio grabado
+        # Process recorded audio
         if len(self.audio_data) > 0:
             return self._process_audio()
         else:
-            self.log("⚠️  No hay audio para procesar", "WARNING")
+            self.log("⚠️  No audio to process", "WARNING")
             return None
     
     def _record_audio(self):
-        """Grabar audio continuamente"""
+        """Record audio continuously"""
         try:
-            # Configurar stream de audio
+            # Configure audio stream
             stream = self.audio.open(
                 format=pyaudio.paInt16,
                 channels=self.channels,
@@ -201,32 +201,32 @@ class VoiceRecorder:
             
             while self.is_recording:
                 try:
-                    # Leer chunk de audio
+                    # Read audio chunk
                     data = stream.read(self.chunk_size, exception_on_overflow=False)
                     self.audio_data.append(data)
                 except Exception as e:
-                    self.log(f"⚠️  Error leyendo audio: {e}", "WARNING")
+                    self.log(f"⚠️  Error reading audio: {e}", "WARNING")
                     break
             
-            # Cerrar stream
+            # Close stream
             stream.stop_stream()
             stream.close()
             
         except Exception as e:
-            self.log(f"❌ Error durante grabación: {e}", "ERROR")
+            self.log(f"❌ Error during recording: {e}", "ERROR")
             self.is_recording = False
     
     def _process_audio(self):
-        """Procesar audio grabado con Whisper"""
+        """Process recorded audio with Whisper"""
         try:
             if not self.audio_data:
-                self.log("⚠️  No hay datos de audio para procesar", "WARNING")
+                self.log("⚠️  No audio data to process", "WARNING")
                 return None
             
-            # Combinar todos los chunks de audio
+            # Combine all audio chunks
             audio_bytes = b''.join(self.audio_data)
             
-            # Guardar audio temporal como WAV
+            # Save temporary audio as WAV
             temp_file = os.path.join(self.temp_dir, "temp_audio.wav")
             
             with wave.open(temp_file, 'wb') as wav_file:
@@ -235,8 +235,8 @@ class VoiceRecorder:
                 wav_file.setframerate(self.sample_rate)
                 wav_file.writeframes(audio_bytes)
             
-            # Transcribir con Whisper
-            self.log("🤖 Transcribiendo con Whisper...")
+            # Transcribe with Whisper
+            self.log("🤖 Transcribing with Whisper...")
             
             result = self.whisper_model.transcribe(
                 temp_file,
@@ -259,17 +259,17 @@ class VoiceRecorder:
             transcript = result["text"].strip()
             
             if transcript:
-                self.log(f"📝 Transcripción: {transcript}")
+                self.log(f"📝 Transcription: {transcript}")
                 
-                # Copiar al portapapeles
+                # Copy to clipboard
                 pyperclip.copy(transcript)
-                self.log("📋 Texto copiado al portapapeles")
+                self.log("📋 Text copied to clipboard")
                 
-                # Notificación de éxito
+                # Success notification
                 preview = transcript[:50] + ('...' if len(transcript) > 50 else '')
-                self.send_notification("📋 ¡Listo!", f"Transcripción copiada: {preview}", 4)
+                self.send_notification("📋 Ready!", f"Transcription copied: {preview}", 4)
                 
-                # Limpiar archivo temporal
+                # Clean temporary file
                 try:
                     os.remove(temp_file)
                 except:
@@ -277,40 +277,40 @@ class VoiceRecorder:
                 
                 return transcript
             else:
-                self.log("⚠️  No se detectó habla en el audio", "WARNING")
+                self.log("⚠️  No speech detected in audio", "WARNING")
                 return None
             
         except Exception as e:
-            self.log(f"❌ Error procesando audio: {e}", "ERROR")
+            self.log(f"❌ Error processing audio: {e}", "ERROR")
             return None
     
     def send_notification(self, title, message, timeout=3):
-        """Enviar notificación del sistema usando osascript nativo de macOS"""
+        """Send system notification using native macOS osascript"""
         try:
-            # Usar osascript para notificaciones nativas de macOS
+            # Use osascript for native macOS notifications
             script = f'''
             display notification "{message}" with title "SimpleVoice" subtitle "{title}"
             '''
             subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
-            self.log(f"📱 Notificación: {title} - {message}")
+            self.log(f"📱 Notification: {title} - {message}")
         except Exception as e:
-            self.log(f"⚠️ Error enviando notificación: {e}", "WARNING")
+            self.log(f"⚠️ Error sending notification: {e}", "WARNING")
     
     def cleanup(self):
-        """Limpiar recursos"""
+        """Clean up resources"""
         try:
             if self.audio:
                 self.audio.terminate()
             
-            # Limpiar directorio temporal
+            # Clean temporary directory
             import shutil
             if os.path.exists(self.temp_dir):
                 shutil.rmtree(self.temp_dir)
                 
-            self.log("🧹 Recursos limpiados")
+            self.log("🧹 Resources cleaned")
         except Exception as e:
-            self.log(f"❌ Error limpiando recursos: {e}", "ERROR")
+            self.log(f"❌ Error cleaning resources: {e}", "ERROR")
     
     def get_log_file_path(self):
-        """Obtener ruta del archivo de logs"""
+        """Get log file path"""
         return self.log_file_path 
