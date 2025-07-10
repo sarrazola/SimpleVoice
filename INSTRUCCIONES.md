@@ -112,6 +112,12 @@ python main_gui.py
   - **Auto-detección** (por defecto): Whisper detecta automáticamente el idioma
   - **Cambio inmediato**: Sin necesidad de reiniciar la aplicación
   - **Idiomas incluidos**: Español, Inglés, Francés, Alemán, Italiano, Portugués, Japonés, Coreano, Chino, Ruso, Holandés, Sueco, Noruego, Danés
+- **🤖 Selección de Modelo**: Dropdown con información rica de rendimiento
+  - **6 modelos disponibles**: Tiny, Base, Small, Medium, Large, Turbo
+  - **Información visual**: Velocidad (⚡) y precisión (⭐) para cada modelo
+  - **Descarga automática**: Los modelos se descargan cuando se seleccionan
+  - **Tamaños**: Desde 39MB (Tiny) hasta 1.5GB (Large)
+  - **Recomendado**: Turbo (805MB) - Balance óptimo velocidad/precisión
 
 ## 🛠️ Personalización
 
@@ -127,6 +133,27 @@ python main_gui.py
 # En el código, si necesitas cambiar por defecto
 self.recorder.set_language("en")  # Cambiar a inglés
 self.recorder.set_language(None)  # Auto-detectar
+```
+
+### Cambiar Modelo
+**🎯 Desde la Interfaz Gráfica (Recomendado):**
+- Usar el dropdown "Modelo de transcripción" 
+- Ver información de velocidad y precisión para cada modelo
+- Descarga automática si el modelo no está disponible
+- Cambio inmediato con feedback visual
+
+**📊 Guía de Modelos:**
+- **⚡ Tiny (39MB)**: Para transcripción básica muy rápida
+- **🏃 Base (74MB)**: Uso general ligero
+- **⚖️ Small (244MB)**: Balance ideal velocidad/calidad
+- **🎯 Medium (769MB)**: Alta precisión para audio complejo
+- **👑 Large (1.5GB)**: Máxima precisión para casos críticos
+- **🚀 Turbo (805MB)**: Recomendado - Optimizado y preciso
+
+**🔧 Programáticamente:**
+```python
+# Cambiar modelo en el código
+self.recorder.set_model("small")  # Cambiar a modelo small
 ```
 
 ### Cambiar Hotkey

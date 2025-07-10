@@ -183,13 +183,62 @@ class SimpleVoiceGUI:
         )
         model_label.grid(row=1, column=1, pady=5, sticky="w", padx=20)
         
-        self.model_value = ctk.CTkLabel(
+        # Dropdown de modelos con información rica
+        self.model_options = {
+            "⚡ Tiny - Muy rápido (39MB)": {
+                "model": "tiny",
+                "size": "39MB",
+                "speed": "⚡⚡⚡⚡⚡",
+                "accuracy": "⭐⭐",
+                "description": "Transcripción básica muy rápida"
+            },
+            "🏃 Base - Rápido (74MB)": {
+                "model": "base", 
+                "size": "74MB",
+                "speed": "⚡⚡⚡⚡",
+                "accuracy": "⭐⭐⭐",
+                "description": "Uso general ligero"
+            },
+            "⚖️ Small - Equilibrado (244MB)": {
+                "model": "small",
+                "size": "244MB", 
+                "speed": "⚡⚡⚡",
+                "accuracy": "⭐⭐⭐⭐",
+                "description": "Balance velocidad/calidad"
+            },
+            "🎯 Medium - Preciso (769MB)": {
+                "model": "medium",
+                "size": "769MB",
+                "speed": "⚡⚡", 
+                "accuracy": "⭐⭐⭐⭐⭐",
+                "description": "Alta precisión"
+            },
+            "👑 Large - Máximo (1.5GB)": {
+                "model": "large",
+                "size": "1.5GB",
+                "speed": "⚡",
+                "accuracy": "⭐⭐⭐⭐⭐", 
+                "description": "Máxima precisión"
+            },
+            "🚀 Turbo - Optimizado (805MB)": {
+                "model": "turbo",
+                "size": "805MB",
+                "speed": "⚡⚡⚡",
+                "accuracy": "⭐⭐⭐⭐⭐",
+                "description": "Rápido y preciso (recomendado)"
+            }
+        }
+        
+        self.model_dropdown = ctk.CTkComboBox(
             settings_frame,
-            text="Whisper Turbo",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=("blue", "lightblue")
+            values=list(self.model_options.keys()),
+            font=ctk.CTkFont(size=11),
+            width=220,
+            height=28,
+            command=self.on_model_change
         )
-        self.model_value.grid(row=2, column=1, pady=(0, 15), sticky="w", padx=20)
+        self.model_dropdown.set("🚀 Turbo - Optimizado (805MB)")  # Valor por defecto
+        self.model_dropdown.grid(row=2, column=1, pady=(0, 15), sticky="w", padx=20)
         
         # Idioma
         language_label = ctk.CTkLabel(
@@ -238,6 +287,92 @@ class SimpleVoiceGUI:
         if self.recorder:
             self.recorder.set_language(language_code)
             
+    def on_model_change(self, selection):
+        """Callback cuando cambia el modelo seleccionado"""
+        model_info = self.model_options[selection]
+        model_name = model_info["model"]
+        
+        self.add_log(f"🤖 Modelo cambiado a: {selection}")
+        self.add_log(f"📊 Velocidad: {model_info['speed']} | Precisión: {model_info['accuracy']}")
+        
+        # Verificar si el modelo está descargado
+        if self.is_model_downloaded(model_name):
+            self.add_log(f"✅ Modelo '{model_name}' ya está descargado")
+            self.load_new_model(model_name)
+        else:
+            self.add_log(f"⬇️ Descargando modelo '{model_name}' ({model_info['size']})...")
+            self.download_and_load_model(model_name, model_info)
+    
+    def is_model_downloaded(self, model_name):
+        """Verificar si un modelo está descargado"""
+        try:
+            # Verificar en el directorio de cache de whisper
+            cache_dir = os.path.expanduser("~/.cache/whisper")
+            if not os.path.exists(cache_dir):
+                return False
+                
+            # Buscar archivos del modelo en cache
+            for file in os.listdir(cache_dir):
+                if model_name in file and file.endswith('.pt'):
+                    return True
+            return False
+        except:
+            return False
+    
+    def download_and_load_model(self, model_name, model_info):
+        """Descargar y cargar modelo en hilo separado"""
+        def download_thread():
+            try:
+                self.root.after(0, lambda: self.update_status(f"⬇️ Descargando {model_name}..."))
+                
+                # Descargar modelo (Whisper lo hace automáticamente)
+                import whisper
+                new_model = whisper.load_model(model_name, device="cpu")
+                
+                # Actualizar recorder con nuevo modelo
+                if self.recorder:
+                    self.recorder.whisper_model = new_model
+                    self.recorder.set_model(model_name)
+                    self.root.after(0, lambda: self.add_log(f"🚀 Modelo '{model_name}' cargado exitosamente"))
+                
+                self.root.after(0, lambda: self.update_status("🟢 Listo"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.add_log(f"❌ Error descargando modelo '{model_name}': {e}", "ERROR"))
+                self.root.after(0, lambda: self.update_status("❌ Error"))
+                
+                # Revertir selección al modelo anterior
+                self.root.after(0, lambda: self.model_dropdown.set("🚀 Turbo - Optimizado (805MB)"))
+        
+        threading.Thread(target=download_thread, daemon=True).start()
+    
+    def load_new_model(self, model_name):
+        """Cargar modelo ya descargado"""
+        def load_thread():
+            try:
+                self.root.after(0, lambda: self.update_status(f"🔄 Cargando {model_name}..."))
+                
+                import whisper
+                new_model = whisper.load_model(model_name, device="cpu")
+                
+                if self.recorder:
+                    self.recorder.whisper_model = new_model
+                    self.recorder.set_model(model_name)
+                    self.root.after(0, lambda: self.add_log(f"🚀 Modelo '{model_name}' cargado exitosamente"))
+                
+                self.root.after(0, lambda: self.update_status("🟢 Listo"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.add_log(f"❌ Error cargando modelo '{model_name}': {e}", "ERROR"))
+                self.root.after(0, lambda: self.update_status("❌ Error"))
+    
+        threading.Thread(target=load_thread, daemon=True).start()
+    
+    def get_selected_model(self):
+        """Obtener el modelo seleccionado"""
+        current_selection = self.model_dropdown.get()
+        return self.model_options[current_selection]["model"]
+    
     def get_selected_language(self):
         """Obtener el código del idioma seleccionado"""
         current_selection = self.language_dropdown.get()
@@ -578,9 +713,15 @@ class SimpleVoiceGUI:
         """Inicializar grabador en hilo separado"""
         def init_thread():
             try:
-                # Obtener idioma seleccionado
+                # Obtener configuración seleccionada
                 selected_language = self.get_selected_language()
-                self.recorder = VoiceRecorder(log_callback=self.add_log, language=selected_language)
+                selected_model = self.get_selected_model()
+                
+                self.recorder = VoiceRecorder(
+                    log_callback=self.add_log, 
+                    language=selected_language,
+                    model=selected_model
+                )
                 self.root.after(0, lambda: self.update_status("🟢 Listo"))
             except Exception as e:
                 self.root.after(0, lambda: self.add_log(f"❌ Error inicializando: {e}"))

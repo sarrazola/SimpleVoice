@@ -30,13 +30,14 @@ except ImportError as e:
     raise
 
 class VoiceRecorder:
-    def __init__(self, log_callback: Optional[Callable] = None, language: Optional[str] = None):
+    def __init__(self, log_callback: Optional[Callable] = None, language: Optional[str] = None, model: str = "turbo"):
         """
         Inicializar el grabador de voz
         
         Args:
             log_callback: Función para enviar logs a la GUI
             language: Código de idioma para transcripción (ej: "es", "en") o None para auto-detectar (por defecto)
+            model: Modelo de Whisper a usar (tiny, base, small, medium, large, turbo)
         """
         self.is_recording = False
         self.sample_rate = 16000
@@ -49,6 +50,7 @@ class VoiceRecorder:
         self.start_time = None
         self.log_callback = log_callback
         self.language = language  # Idioma para transcripción
+        self.model_name = model  # Modelo de Whisper
         
         # Configurar logging
         self.setup_logging()
@@ -63,9 +65,10 @@ class VoiceRecorder:
         # Cargar modelo Whisper
         self.load_whisper_model()
         
-        # Registrar idioma configurado
+        # Registrar configuración
         lang_text = "🌐 Auto-detectar" if language is None else f"🌍 {language.upper()}"
         self.log(f"🗣️  Idioma configurado: {lang_text}")
+        self.log(f"🤖 Modelo configurado: {model.upper()}")
         
         self.log("🚀 SimpleVoice listo para usar!")
         
@@ -106,11 +109,11 @@ class VoiceRecorder:
     def load_whisper_model(self):
         """Cargar modelo Whisper"""
         try:
-            self.log("🤖 Cargando modelo Whisper 'turbo'...")
-            self.whisper_model = whisper.load_model("turbo", device="cpu")
-            self.log("✅ Modelo Whisper cargado exitosamente")
+            self.log(f"🤖 Cargando modelo Whisper '{self.model_name}'...")
+            self.whisper_model = whisper.load_model(self.model_name, device="cpu")
+            self.log(f"✅ Modelo Whisper '{self.model_name}' cargado exitosamente")
         except Exception as e:
-            self.log(f"❌ Error cargando modelo Whisper: {e}", "ERROR")
+            self.log(f"❌ Error cargando modelo Whisper '{self.model_name}': {e}", "ERROR")
             raise
     
     def set_language(self, language_code: Optional[str]):
@@ -123,6 +126,17 @@ class VoiceRecorder:
         self.language = language_code
         lang_text = "🌐 Auto-detectar" if language_code is None else f"🌍 {language_code.upper()}"
         self.log(f"🗣️  Idioma actualizado: {lang_text}")
+        
+    def set_model(self, model_name: str):
+        """
+        Cambiar el modelo de Whisper
+        
+        Args:
+            model_name: Nombre del modelo (tiny, base, small, medium, large, turbo)
+        """
+        self.model_name = model_name
+        self.log(f"🤖 Modelo actualizado: {model_name.upper()}")
+        # Nota: El modelo se carga externamente desde la GUI para mostrar progreso
     
     def start_recording(self):
         """Iniciar grabación de audio"""
