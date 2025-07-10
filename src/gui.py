@@ -33,6 +33,7 @@ class SimpleVoiceGUI:
         self.window_visible = True
         self.is_recording = False
         self.tray_queue = multiprocessing.Queue()
+        self.tray_status_queue = multiprocessing.Queue()
         self.tray_process = None
         
         self.setup_window()
@@ -333,7 +334,7 @@ class SimpleVoiceGUI:
             # Iniciar proceso separado para el system tray
             self.tray_process = multiprocessing.Process(
                 target=self.run_tray_process,
-                args=(self.tray_queue,),
+                args=(self.tray_queue, self.tray_status_queue),
                 daemon=True
             )
             self.tray_process.start()
@@ -349,8 +350,9 @@ class SimpleVoiceGUI:
             self.tray_process = None
             
     @staticmethod
-    def run_tray_process(event_queue):
+    def run_tray_process(event_queue, status_queue):
         """Ejecutar system tray en proceso separado"""
+        import threading
         try:
             # Crear icono para el tray
             def create_tray_icon_static(is_recording=False):
@@ -378,20 +380,17 @@ class SimpleVoiceGUI:
             
             # Estado del tray
             is_recording = False
+            icon = None
             
-            def on_record_click(icon, item):
-                nonlocal is_recording
+            def on_record_click(icon_obj, item):
                 event_queue.put(('toggle_recording',))
-                is_recording = not is_recording
-                # Actualizar icono
-                icon.icon = create_tray_icon_static(is_recording)
                 
-            def on_options_click(icon, item):
+            def on_options_click(icon_obj, item):
                 event_queue.put(('show_window',))
                 
-            def on_quit_click(icon, item):
+            def on_quit_click(icon_obj, item):
                 event_queue.put(('quit',))
-                icon.stop()
+                icon_obj.stop()
             
             def create_menu():
                 record_text = "⏹️ Detener Grabación" if is_recording else "🎙️ Iniciar Grabación"
@@ -402,6 +401,23 @@ class SimpleVoiceGUI:
                     pystray.MenuItem("❌ Salir", on_quit_click)
                 )
             
+            def update_tray_state():
+                """Actualizar estado del tray basado en mensajes del proceso principal"""
+                nonlocal is_recording, icon
+                try:
+                    while not status_queue.empty():
+                        status_update = status_queue.get_nowait()
+                        if status_update[0] == 'recording_state':
+                            new_recording_state = status_update[1]
+                            if new_recording_state != is_recording:
+                                is_recording = new_recording_state
+                                # Actualizar icono
+                                icon.icon = create_tray_icon_static(is_recording)
+                                # Actualizar menú
+                                icon.menu = create_menu()
+                except:
+                    pass
+            
             # Crear y ejecutar icono
             icon_image = create_tray_icon_static(False)
             icon = pystray.Icon(
@@ -410,6 +426,15 @@ class SimpleVoiceGUI:
                 "SimpleVoice - Transcriptor de Voz",
                 create_menu()
             )
+            
+            # Configurar verificación periódica de actualizaciones
+            def check_updates():
+                update_tray_state()
+                # Programar siguiente verificación
+                threading.Timer(0.1, check_updates).start()
+            
+            # Iniciar verificación de actualizaciones
+            check_updates()
             
             icon.run()
             
@@ -474,6 +499,15 @@ class SimpleVoiceGUI:
                 self.tray_process.terminate()
                 self.tray_process.join(timeout=1)
                 
+            # Limpiar colas de comunicación
+            try:
+                while not self.tray_queue.empty():
+                    self.tray_queue.get_nowait()
+                while not self.tray_status_queue.empty():
+                    self.tray_status_queue.get_nowait()
+            except:
+                pass
+                
             # Limpiar recursos
             if self.recorder:
                 self.recorder.cleanup()
@@ -527,6 +561,7 @@ class SimpleVoiceGUI:
             self.is_recording = False
             self.record_button.configure(text="⏳ Procesando...", state="disabled")
             self.update_status("⏳ Procesando...")
+            self.update_tray_state()
             
             def stop_thread():
                 transcript = self.recorder.stop_recording()
@@ -542,6 +577,15 @@ class SimpleVoiceGUI:
                 self.is_recording = True
                 self.record_button.configure(text="⏹️ Detener Grabación")
                 self.update_status("🔴 Grabando...")
+                self.update_tray_state()
+                
+    def update_tray_state(self):
+        """Enviar actualización de estado al process del tray"""
+        try:
+            if self.tray_process and self.tray_process.is_alive():
+                self.tray_status_queue.put(('recording_state', self.is_recording))
+        except Exception as e:
+            print(f"⚠️ Error actualizando estado tray: {e}")
                 
     def show_transcription(self, text):
         """Mostrar transcripción en el área de texto"""

@@ -103,9 +103,11 @@ python main_gui.py
 - **Gestión de recursos** automática
 - **Notificaciones visuales** de estado
 - **🆕 System Tray**: Icono permanente en la barra de menú de macOS
+  - **Estado visual**: Azul (listo) / Rojo (grabando)
   - **🎙️ Grabar**: Iniciar/detener grabación desde el menú
   - **⚙️ Opciones**: Mostrar/ocultar la ventana principal
   - **❌ Salir**: Cerrar completamente la aplicación
+  - **Sincronización**: Estado se actualiza automáticamente con F12
 
 ## 🛠️ Personalización
 
