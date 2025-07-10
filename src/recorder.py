@@ -24,6 +24,7 @@ try:
     import wave
     import whisper
     import pyperclip
+    import subprocess
 except ImportError as e:
     logging.error(f"❌ Error importando dependencias: {e}")
     raise
@@ -114,6 +115,9 @@ class VoiceRecorder:
             
         self.log("🎵 INICIANDO GRABACIÓN...")
         
+        # Notificación de inicio
+        self.send_notification("🎤 Grabando", "¡Habla ahora! Presiona F12 para parar", 2)
+        
         self.is_recording = True
         self.audio_data = []
         self.start_time = time.time()
@@ -137,6 +141,9 @@ class VoiceRecorder:
         if self.start_time:
             duration = time.time() - self.start_time
             self.log(f"⏹️  Grabación terminada ({duration:.1f}s)")
+        
+        # Notificación de procesamiento
+        self.send_notification("🤖 Procesando", "Transcribiendo audio...", 3)
         
         # Esperar a que termine el hilo de grabación
         if self.recording_thread:
@@ -227,6 +234,10 @@ class VoiceRecorder:
                 pyperclip.copy(transcript)
                 self.log("📋 Texto copiado al portapapeles")
                 
+                # Notificación de éxito
+                preview = transcript[:50] + ('...' if len(transcript) > 50 else '')
+                self.send_notification("📋 ¡Listo!", f"Transcripción copiada: {preview}", 4)
+                
                 # Limpiar archivo temporal
                 try:
                     os.remove(temp_file)
@@ -241,6 +252,18 @@ class VoiceRecorder:
         except Exception as e:
             self.log(f"❌ Error procesando audio: {e}", "ERROR")
             return None
+    
+    def send_notification(self, title, message, timeout=3):
+        """Enviar notificación del sistema usando osascript nativo de macOS"""
+        try:
+            # Usar osascript para notificaciones nativas de macOS
+            script = f'''
+            display notification "{message}" with title "SimpleVoice" subtitle "{title}"
+            '''
+            subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+            self.log(f"📱 Notificación: {title} - {message}")
+        except Exception as e:
+            self.log(f"⚠️ Error enviando notificación: {e}", "WARNING")
     
     def cleanup(self):
         """Limpiar recursos"""
