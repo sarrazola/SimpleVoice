@@ -7,6 +7,7 @@ Punto de entrada principal para la GUI
 import sys
 import os
 from pathlib import Path
+import multiprocessing
 
 # Añadir directorio src al path para imports
 if getattr(sys, 'frozen', False):
@@ -47,6 +48,11 @@ def check_dependencies():
     except ImportError:
         missing_deps.append("pyperclip")
     
+    try:
+        import pystray
+    except ImportError:
+        missing_deps.append("pystray")
+    
     if missing_deps:
         print("❌ Faltan las siguientes dependencias:")
         for dep in missing_deps:
@@ -76,10 +82,7 @@ def main():
     
     # Importar e iniciar GUI
     try:
-        try:
-            from gui import SimpleVoiceGUI
-        except ImportError:
-            from .gui import SimpleVoiceGUI
+        from gui import SimpleVoiceGUI
         
         print("✅ Dependencias verificadas")
         print("🚀 Iniciando interfaz gráfica...")
@@ -105,4 +108,6 @@ def main():
     return 0
 
 if __name__ == "__main__":
+    # Protección necesaria para multiprocessing en macOS
+    multiprocessing.set_start_method('spawn', force=True)
     sys.exit(main()) 

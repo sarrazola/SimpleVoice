@@ -62,9 +62,18 @@ python main_gui.py
 ### Para Usuarios Finales
 1. Descomprimir el archivo ZIP
 2. Abrir SimpleVoice.app (macOS) o SimpleVoice.exe (Windows)
-3. Presionar F12 para grabar
-4. Hablar claramente
-5. Presionar F12 para parar y transcribir
+3. **Usar desde la barra de menú** (recomendado):
+   - Buscar el icono azul circular en la barra de menú superior
+   - Clic derecho → "🎙️ Iniciar Grabación"
+   - Hablar claramente
+   - Clic derecho → "⏹️ Detener Grabación"
+   - El texto se copia automáticamente al portapapeles
+4. **Usar desde la interfaz gráfica**:
+   - Presionar F12 para grabar
+   - Hablar claramente
+   - Presionar F12 para parar y transcribir
+5. **Cerrar la ventana** no cierra la app (queda en system tray)
+6. Para **salir completamente**: System Tray → "❌ Salir"
 
 ## 📊 Sistema de Logs
 
@@ -93,6 +102,10 @@ python main_gui.py
 - **Transcripción en español** con Whisper Turbo
 - **Gestión de recursos** automática
 - **Notificaciones visuales** de estado
+- **🆕 System Tray**: Icono permanente en la barra de menú de macOS
+  - **🎙️ Grabar**: Iniciar/detener grabación desde el menú
+  - **⚙️ Opciones**: Mostrar/ocultar la ventana principal
+  - **❌ Salir**: Cerrar completamente la aplicación
 
 ## 🛠️ Personalización
 

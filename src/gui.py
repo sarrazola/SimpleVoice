@@ -12,12 +12,14 @@ import sys
 import os
 from pathlib import Path
 from typing import Optional
+import multiprocessing
+import queue
+import time
+import pystray
+from PIL import Image, ImageDraw
 
 # Importar módulos locales
-try:
-    from .recorder import VoiceRecorder
-except ImportError:
-    from recorder import VoiceRecorder
+from recorder import VoiceRecorder
 
 # Configurar CustomTkinter para apariencia nativa
 ctk.set_appearance_mode("system")  # Seguir el tema del sistema
@@ -27,10 +29,19 @@ class SimpleVoiceGUI:
     def __init__(self):
         """Inicializar la GUI"""
         self.recorder: Optional[VoiceRecorder] = None
+        self.tray_icon = None
+        self.window_visible = True
+        self.is_recording = False
+        self.tray_queue = multiprocessing.Queue()
+        self.tray_process = None
+        
         self.setup_window()
         self.setup_widgets()
         self.setup_hotkeys()
         self.init_recorder()
+        
+        # Configurar system tray con manejo específico para macOS
+        self.setup_system_tray()
         
     def setup_window(self):
         """Configurar ventana principal"""
@@ -39,8 +50,8 @@ class SimpleVoiceGUI:
         self.root.geometry("900x750")
         self.root.resizable(True, True)
         
-        # Configurar protocolo de cierre
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # Configurar protocolo de cierre (ocultar en lugar de cerrar)
+        self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         
         # Configurar grid
         self.root.grid_columnconfigure(0, weight=1)
@@ -315,8 +326,163 @@ class SimpleVoiceGUI:
         self.logs_container.grid_rowconfigure(0, weight=1)
         
 
-  
+        
+    def setup_system_tray(self):
+        """Configurar icono del system tray usando multiprocessing para macOS"""
+        try:
+            # Iniciar proceso separado para el system tray
+            self.tray_process = multiprocessing.Process(
+                target=self.run_tray_process,
+                args=(self.tray_queue,),
+                daemon=True
+            )
+            self.tray_process.start()
+            
+            # Iniciar monitor de eventos del tray
+            self.root.after(100, self.check_tray_events)
+            
+            print("✅ System tray inicializado en proceso separado")
+            
+        except Exception as e:
+            print(f"⚠️ No se pudo inicializar system tray: {e}")
+            print("📱 La aplicación funcionará sin icono en la barra de menú")
+            self.tray_process = None
+            
+    @staticmethod
+    def run_tray_process(event_queue):
+        """Ejecutar system tray en proceso separado"""
+        try:
+            # Crear icono para el tray
+            def create_tray_icon_static(is_recording=False):
+                size = 64
+                image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(image)
+                
+                if is_recording:
+                    color = (220, 50, 50, 255)
+                else:
+                    color = (50, 150, 220, 255)
+                    
+                margin = 8
+                draw.ellipse([margin, margin, size-margin, size-margin], fill=color)
+                
+                inner_margin = 16
+                inner_color = tuple(min(255, c + 40) for c in color[:3]) + (255,)
+                draw.ellipse([inner_margin, inner_margin, size-inner_margin, size-inner_margin], fill=inner_color)
+                
+                center_margin = 24
+                center_color = (255, 255, 255, 255)
+                draw.ellipse([center_margin, center_margin, size-center_margin, size-center_margin], fill=center_color)
+                
+                return image
+            
+            # Estado del tray
+            is_recording = False
+            
+            def on_record_click(icon, item):
+                nonlocal is_recording
+                event_queue.put(('toggle_recording',))
+                is_recording = not is_recording
+                # Actualizar icono
+                icon.icon = create_tray_icon_static(is_recording)
+                
+            def on_options_click(icon, item):
+                event_queue.put(('show_window',))
+                
+            def on_quit_click(icon, item):
+                event_queue.put(('quit',))
+                icon.stop()
+            
+            def create_menu():
+                record_text = "⏹️ Detener Grabación" if is_recording else "🎙️ Iniciar Grabación"
+                return pystray.Menu(
+                    pystray.MenuItem(record_text, on_record_click),
+                    pystray.MenuItem("⚙️ Opciones", on_options_click),
+                    pystray.Menu.SEPARATOR,
+                    pystray.MenuItem("❌ Salir", on_quit_click)
+                )
+            
+            # Crear y ejecutar icono
+            icon_image = create_tray_icon_static(False)
+            icon = pystray.Icon(
+                "SimpleVoice",
+                icon_image,
+                "SimpleVoice - Transcriptor de Voz",
+                create_menu()
+            )
+            
+            icon.run()
+            
+        except Exception as e:
+            print(f"⚠️ Error en proceso tray: {e}")
+            
+    def check_tray_events(self):
+        """Verificar eventos del system tray"""
+        try:
+            while not self.tray_queue.empty():
+                event = self.tray_queue.get_nowait()
+                
+                if event[0] == 'toggle_recording':
+                    self.toggle_recording()
+                elif event[0] == 'show_window':
+                    self.show_window()
+                elif event[0] == 'quit':
+                    self.quit_application()
+                    
+        except queue.Empty:
+            pass
+        except Exception as e:
+            print(f"⚠️ Error procesando eventos tray: {e}")
+        
+        # Programar próxima verificación
+        if self.tray_process and self.tray_process.is_alive():
+            self.root.after(100, self.check_tray_events)
+        
+    def hide_window(self):
+        """Ocultar ventana (cerrar a system tray)"""
+        self.root.withdraw()
+        self.window_visible = False
+        
+    def show_window(self):
+        """Mostrar ventana"""
+        try:
+            # Ejecutar en el hilo principal si es llamado desde otro hilo
+            if threading.current_thread() != threading.main_thread():
+                self.root.after_idle(self._show_window_safe)
+            else:
+                self._show_window_safe()
+        except Exception as e:
+            print(f"⚠️ Error mostrando ventana: {e}")
+            
+    def _show_window_safe(self):
+        """Mostrar ventana de forma segura"""
+        try:
+            self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+            self.window_visible = True
+        except Exception as e:
+            print(f"⚠️ Error en _show_window_safe: {e}")
+        
 
+            
+    def quit_application(self):
+        """Salir completamente de la aplicación"""
+        try:
+            # Terminar proceso del system tray
+            if self.tray_process and self.tray_process.is_alive():
+                self.tray_process.terminate()
+                self.tray_process.join(timeout=1)
+                
+            # Limpiar recursos
+            if self.recorder:
+                self.recorder.cleanup()
+            if hasattr(self, 'listener'):
+                self.listener.stop()
+        except:
+            pass
+        self.root.quit()
+        sys.exit(0)
         
     def setup_hotkeys(self):
         """Configurar hotkeys globales"""
@@ -358,6 +524,7 @@ class SimpleVoiceGUI:
             
         if self.recorder.is_recording:
             # Parar grabación
+            self.is_recording = False
             self.record_button.configure(text="⏳ Procesando...", state="disabled")
             self.update_status("⏳ Procesando...")
             
@@ -372,6 +539,7 @@ class SimpleVoiceGUI:
         else:
             # Iniciar grabación
             if self.recorder.start_recording():
+                self.is_recording = True
                 self.record_button.configure(text="⏹️ Detener Grabación")
                 self.update_status("🔴 Grabando...")
                 
@@ -538,19 +706,12 @@ class SimpleVoiceGUI:
         
         messagebox.showinfo("❓ Ayuda", help_text)
         
-    def on_closing(self):
-        """Manejar cierre de la aplicación"""
-        try:
-            if self.recorder:
-                self.recorder.cleanup()
-            if hasattr(self, 'listener'):
-                self.listener.stop()
-        except:
-            pass
-        self.root.destroy()
+
         
     def run(self):
         """Ejecutar la aplicación"""
+        # Mostrar ventana al inicio
+        self.root.deiconify()
         self.root.mainloop()
 
 def main():
@@ -563,4 +724,6 @@ def main():
         messagebox.showerror("Error", f"Error ejecutando SimpleVoice:\n{e}")
 
 if __name__ == "__main__":
+    # Protección necesaria para multiprocessing en macOS
+    multiprocessing.set_start_method('spawn', force=True)
     main() 
