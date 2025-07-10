@@ -199,13 +199,49 @@ class SimpleVoiceGUI:
         )
         language_label.grid(row=1, column=2, pady=5, sticky="w", padx=20)
         
-        self.language_value = ctk.CTkLabel(
+        # Dropdown de idiomas
+        self.language_options = {
+            "🌐 Auto-detectar": None,
+            "🇪🇸 Español": "es",
+            "🇺🇸 Inglés": "en",
+            "🇫🇷 Francés": "fr",
+            "🇩🇪 Alemán": "de",
+            "🇮🇹 Italiano": "it",
+            "🇵🇹 Portugués": "pt",
+            "🇯🇵 Japonés": "ja",
+            "🇰🇷 Coreano": "ko",
+            "🇨🇳 Chino": "zh",
+            "🇷🇺 Ruso": "ru",
+            "🇳🇱 Holandés": "nl",
+            "🇸🇪 Sueco": "sv",
+            "🇳🇴 Noruego": "no",
+            "🇩🇰 Danés": "da"
+        }
+        
+        self.language_dropdown = ctk.CTkComboBox(
             settings_frame,
-            text="Español 🇪🇸",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=("blue", "lightblue")
+            values=list(self.language_options.keys()),
+            font=ctk.CTkFont(size=12),
+            width=160,
+            height=28,
+            command=self.on_language_change
         )
-        self.language_value.grid(row=2, column=2, pady=(0, 15), sticky="w", padx=20)
+        self.language_dropdown.set("🇪🇸 Español")  # Valor por defecto
+        self.language_dropdown.grid(row=2, column=2, pady=(0, 15), sticky="w", padx=20)
+        
+    def on_language_change(self, selection):
+        """Callback cuando cambia el idioma seleccionado"""
+        language_code = self.language_options[selection]
+        self.add_log(f"🌍 Idioma cambiado a: {selection}")
+        
+        # Actualizar el recorder con el nuevo idioma
+        if self.recorder:
+            self.recorder.set_language(language_code)
+            
+    def get_selected_language(self):
+        """Obtener el código del idioma seleccionado"""
+        current_selection = self.language_dropdown.get()
+        return self.language_options.get(current_selection, "es")
         
     def setup_recording_controls(self, parent):
         """Configurar controles de grabación"""
@@ -542,7 +578,9 @@ class SimpleVoiceGUI:
         """Inicializar grabador en hilo separado"""
         def init_thread():
             try:
-                self.recorder = VoiceRecorder(log_callback=self.add_log)
+                # Obtener idioma seleccionado
+                selected_language = self.get_selected_language()
+                self.recorder = VoiceRecorder(log_callback=self.add_log, language=selected_language)
                 self.root.after(0, lambda: self.update_status("🟢 Listo"))
             except Exception as e:
                 self.root.after(0, lambda: self.add_log(f"❌ Error inicializando: {e}"))

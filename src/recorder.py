@@ -30,12 +30,13 @@ except ImportError as e:
     raise
 
 class VoiceRecorder:
-    def __init__(self, log_callback: Optional[Callable] = None):
+    def __init__(self, log_callback: Optional[Callable] = None, language: str = "es"):
         """
         Inicializar el grabador de voz
         
         Args:
             log_callback: Función para enviar logs a la GUI
+            language: Código de idioma para transcripción (ej: "es", "en", None para auto-detectar)
         """
         self.is_recording = False
         self.sample_rate = 16000
@@ -47,6 +48,7 @@ class VoiceRecorder:
         self.audio_data = []
         self.start_time = None
         self.log_callback = log_callback
+        self.language = language  # Idioma para transcripción
         
         # Configurar logging
         self.setup_logging()
@@ -60,6 +62,10 @@ class VoiceRecorder:
         
         # Cargar modelo Whisper
         self.load_whisper_model()
+        
+        # Registrar idioma configurado
+        lang_text = "🌐 Auto-detectar" if language is None else f"🌍 {language.upper()}"
+        self.log(f"🗣️  Idioma configurado: {lang_text}")
         
         self.log("🚀 SimpleVoice listo para usar!")
         
@@ -106,6 +112,17 @@ class VoiceRecorder:
         except Exception as e:
             self.log(f"❌ Error cargando modelo Whisper: {e}", "ERROR")
             raise
+    
+    def set_language(self, language_code: Optional[str]):
+        """
+        Cambiar el idioma de transcripción
+        
+        Args:
+            language_code: Código de idioma ("es", "en", etc.) o None para auto-detectar
+        """
+        self.language = language_code
+        lang_text = "🌐 Auto-detectar" if language_code is None else f"🌍 {language_code.upper()}"
+        self.log(f"🗣️  Idioma actualizado: {lang_text}")
     
     def start_recording(self):
         """Iniciar grabación de audio"""
@@ -209,7 +226,7 @@ class VoiceRecorder:
             
             result = self.whisper_model.transcribe(
                 temp_file,
-                language="es",
+                language=self.language,
                 fp16=False,
                 verbose=False,
                 temperature=0.0,

@@ -108,17 +108,25 @@ python main_gui.py
   - **⚙️ Opciones**: Mostrar/ocultar la ventana principal
   - **❌ Salir**: Cerrar completamente la aplicación
   - **Sincronización**: Estado se actualiza automáticamente con F12
+- **🌍 Selección de Idioma**: Dropdown con 15+ idiomas soportados
+  - **Auto-detección**: Whisper detecta automáticamente el idioma
+  - **Cambio inmediato**: Sin necesidad de reiniciar la aplicación
+  - **Idiomas incluidos**: Español, Inglés, Francés, Alemán, Italiano, Portugués, Japonés, Coreano, Chino, Ruso, Holandés, Sueco, Noruego, Danés
 
 ## 🛠️ Personalización
 
 ### Cambiar Idioma
-En `src/recorder.py`, línea ~190:
+**🎯 Desde la Interfaz Gráfica (Recomendado):**
+- Usar el dropdown "Idioma" en la sección de configuración
+- Seleccionar entre 15+ idiomas disponibles
+- Incluye auto-detección de idioma
+- Cambio inmediato, sin reiniciar
+
+**🔧 Programáticamente:**
 ```python
-result = self.whisper_model.transcribe(
-    temp_file,
-    language="es",  # Cambiar a "en" para inglés
-    ...
-)
+# En el código, si necesitas cambiar por defecto
+self.recorder.set_language("en")  # Cambiar a inglés
+self.recorder.set_language(None)  # Auto-detectar
 ```
 
 ### Cambiar Hotkey
