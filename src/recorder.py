@@ -111,10 +111,13 @@ class VoiceRecorder:
         """Load Whisper model"""
         try:
             self.log(f"🤖 Loading Whisper model '{self.model_name}'...")
+            self.send_notification("Initializing...", f"Initializing model, please wait a few seconds...")
             self.whisper_model = whisper.load_model(self.model_name, device="cpu")
             self.log(f"✅ Whisper model '{self.model_name}' loaded successfully")
+            self.send_notification("Ready to Record", "SimpleVoice is now ready to use.")
         except Exception as e:
             self.log(f"❌ Error loading Whisper model '{self.model_name}': {e}", "ERROR")
+            self.send_notification("Initialization Error", f"Could not load model: {e}")
             raise
     
     def set_language(self, language_code: Optional[str]):
