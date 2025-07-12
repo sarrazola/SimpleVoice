@@ -1,4 +1,6 @@
 openai-whisper
+pystray
+Pillow
+pyperclip
 pyaudio
-pynput
-pyperclip 
+pynput 

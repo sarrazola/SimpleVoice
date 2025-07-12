@@ -25,6 +25,7 @@ try:
     import whisper
     import pyperclip
     import subprocess
+    import pyautogui
 except ImportError as e:
     logging.error(f"❌ Error importing dependencies: {e}")
     raise
@@ -258,44 +259,64 @@ class VoiceRecorder:
             
             transcript = result["text"].strip()
             
-            if transcript:
-                self.log(f"📝 Transcription: {transcript}")
-                
-                # Copy to clipboard
+            self.log(f"📝 Transcription: {transcript}")
+            
+            # Copy to clipboard and auto-paste
+            try:
                 pyperclip.copy(transcript)
                 self.log("📋 Text copied to clipboard")
+
+                # Auto-paste from clipboard
+                self._paste_from_clipboard()
                 
-                # Success notification
-                preview = transcript[:50] + ('...' if len(transcript) > 50 else '')
-                self.send_notification("📋 Ready!", f"Transcription copied: {preview}", 4)
-                
-                # Clean temporary file
-                try:
-                    os.remove(temp_file)
-                except:
-                    pass
-                
-                return transcript
-            else:
-                self.log("⚠️  No speech detected in audio", "WARNING")
-                return None
+            except Exception as e:
+                self.log(f"❌ Error copying to clipboard or pasting: {e}", "ERROR")
+
+            # Send notification
+            self.send_notification("📋 Ready!", f"Transcription copied: {transcript[:50]}...")
             
+            return transcript
         except Exception as e:
             self.log(f"❌ Error processing audio: {e}", "ERROR")
             return None
-    
-    def send_notification(self, title, message, timeout=3):
-        """Send system notification using native macOS osascript"""
+
+    def _paste_from_clipboard(self):
+        """Simulate pasting from clipboard using pyautogui"""
         try:
-            # Use osascript for native macOS notifications
-            script = f'''
-            display notification "{message}" with title "SimpleVoice" subtitle "{title}"
-            '''
-            subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
-            self.log(f"📱 Notification: {title} - {message}")
+            self.log("📋 Pasting text automatically...")
+            
+            # Allow a very short moment for the user to switch focus if needed
+            time.sleep(0.2)
+
+            os_platform = sys.platform
+            self.log(f"💻 Detected OS: {os_platform}")
+
+            if os_platform == "darwin":  # macOS
+                self.log("macOS detected, using 'command' + 'v'")
+                pyautogui.hotkey('command', 'v')
+            else:  # Windows or Linux
+                self.log("Windows/Linux detected, using 'ctrl' + 'v'")
+                pyautogui.hotkey('ctrl', 'v')
+            
+            self.log("✅ Paste command sent successfully.")
+
         except Exception as e:
-            self.log(f"⚠️ Error sending notification: {e}", "WARNING")
-    
+            self.log(f"❌ Error during automatic paste: {e}", "ERROR")
+            self.log("ℹ️  Please ensure accessibility permissions are granted for your terminal/IDE if on macOS.", "WARNING")
+
+    def send_notification(self, title, message, timeout=3):
+        """Send desktop notification (macOS only)"""
+        if sys.platform == "darwin":
+            try:
+                # Use osascript for native macOS notifications
+                script = f'''
+                display notification "{message}" with title "SimpleVoice" subtitle "{title}"
+                '''
+                subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+                self.log(f"📱 Notification: {title} - {message}")
+            except Exception as e:
+                self.log(f"⚠️ Error sending notification: {e}", "WARNING")
+
     def cleanup(self):
         """Clean up resources"""
         try:
