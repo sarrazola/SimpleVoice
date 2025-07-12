@@ -54,23 +54,63 @@ class SimpleVoiceGUI:
         # Configurar protocolo de cierre (ocultar en lugar de cerrar)
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         
-        # Configurar grid
-        self.root.grid_columnconfigure(0, weight=1)
+        # Configurar grid para sidebar y contenido
+        self.root.grid_columnconfigure(0, weight=0)  # Sidebar (no se expande)
+        self.root.grid_columnconfigure(1, weight=1)  # Contenido (se expande)
         self.root.grid_rowconfigure(0, weight=1)
         
     def setup_widgets(self):
         """Configurar widgets de la interfaz"""
-        # Frame principal sin border para look más nativo
-        main_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
-        main_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
-        main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(1, weight=1)
+        # Sidebar
+        self.setup_sidebar()
+
+        # Frame principal para el contenido
+        self.main_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
+        self.main_frame.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)
         
         # Header con título y configuraciones
-        self.setup_header(main_frame)
+        self.setup_header(self.main_frame)
         
         # Contenido principal con configuraciones y controles
-        self.setup_main_content(main_frame)
+        self.setup_main_content(self.main_frame)
+
+        # Mostrar la vista "Home" por defecto
+        self.show_view("home")
+        
+    def setup_sidebar(self):
+        """Configurar el menú lateral"""
+        sidebar_frame = ctk.CTkFrame(self.root, width=120, corner_radius=0)
+        sidebar_frame.grid(row=0, column=0, sticky="nsw")
+        sidebar_frame.grid_rowconfigure(4, weight=1)
+
+        logo_label = ctk.CTkLabel(sidebar_frame, text="SimpleVoice", font=ctk.CTkFont(size=20, weight="bold"))
+        logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        home_button = ctk.CTkButton(sidebar_frame, text="🏠 Home", command=lambda: self.show_view("home"))
+        home_button.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+
+        settings_button = ctk.CTkButton(sidebar_frame, text="⚙️ Settings", command=lambda: self.show_view("settings"))
+        settings_button.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+
+        help_button = ctk.CTkButton(sidebar_frame, text="❓ Help", command=lambda: self.show_view("help"))
+        help_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+
+    def show_view(self, view_name):
+        """Mostrar la vista seleccionada (home o help)"""
+        # Ocultar todos los frames de contenido
+        self.home_frame.grid_remove()
+        self.help_frame.grid_remove()
+        self.settings_frame.grid_remove()
+
+        # Mostrar el frame seleccionado
+        if view_name == "home":
+            self.home_frame.grid()
+        elif view_name == "help":
+            self.help_frame.grid()
+        elif view_name == "settings":
+            self.settings_frame.grid()
         
     def setup_header(self, parent):
         """Configurar header con título y estado"""
@@ -91,32 +131,6 @@ class SimpleVoiceGUI:
         )
         title_label.grid(row=0, column=0, sticky="w")
         
-        # Botones de menú
-        menu_buttons = ctk.CTkFrame(title_row, corner_radius=0, fg_color="transparent")
-        menu_buttons.grid(row=0, column=1, sticky="e")
-        
-        # Botón configuraciones
-        settings_btn = ctk.CTkButton(
-            menu_buttons,
-            text="⚙️",
-            width=30,
-            height=30,
-            font=ctk.CTkFont(size=14),
-            command=self.show_settings
-        )
-        settings_btn.grid(row=0, column=0, padx=(0, 5))
-        
-        # Botón ayuda
-        help_btn = ctk.CTkButton(
-            menu_buttons,
-            text="?",
-            width=30,
-            height=30,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            command=self.show_help
-        )
-        help_btn.grid(row=0, column=1)
-        
         # Estado
         self.status_label = ctk.CTkLabel(
             header_frame,
@@ -128,61 +142,103 @@ class SimpleVoiceGUI:
         
     def setup_main_content(self, parent):
         """Configurar contenido principal"""
-        content_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
-        content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
-        content_frame.grid_columnconfigure(0, weight=1)
-        content_frame.grid_rowconfigure(2, weight=1)
+        # Frame para la vista "Home"
+        self.home_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.home_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.home_frame.grid_columnconfigure(0, weight=1)
+        self.home_frame.grid_rowconfigure(1, weight=1)
+
+        # Frame para la vista "Help"
+        self.help_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.help_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.help_frame.grid_columnconfigure(0, weight=1)
+        self.help_frame.grid_rowconfigure(0, weight=1)
+
+        # Frame para la vista "Settings"
+        self.settings_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.settings_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.settings_frame.grid_columnconfigure(0, weight=1)
+        self.settings_frame.grid_rowconfigure(0, weight=0)
+
+        # Contenido de las vistas
+        self.setup_settings_section(self.settings_frame)
+        self.setup_recording_controls(self.home_frame)
+        self.setup_transcription_section(self.home_frame)
+        self.setup_logs_section(self.home_frame)
+        self.setup_help_content(self.help_frame)
         
-        # Configuraciones visibles
-        self.setup_settings_section(content_frame)
+    def setup_help_content(self, parent):
+        """Configurar el contenido de la sección de ayuda"""
+        help_text = """
+        🎙️ SimpleVoice - Voice Transcriptor
         
-        # Controles de grabación
-        self.setup_recording_controls(content_frame)
+        📖 How to use:
+        1. Press F12 or the "RECORD" button to start
+        2. Speak clearly into the microphone
+        3. Press F12 again or "STOP" to finish
+        4. The text is automatically transcribed
+        5. It's automatically copied to clipboard
         
-        # Área de transcripción
-        self.setup_transcription_section(content_frame)
+        🔧 Features:
+        • Global F12 hotkey
+        • AI transcription (Whisper)
+        • Auto-copy to clipboard
+        • Detailed system logs
+        • Modern and friendly interface
         
-        # Área de logs (inicialmente oculta)
-        self.setup_logs_section(content_frame)
+        📝 Notes:
+        • Requires functional microphone
+        • Optimized for multiple languages
+        • Logs are saved in ~/SimpleVoice/logs/
+        """
         
+        help_label = ctk.CTkLabel(
+            parent,
+            text=help_text,
+            font=ctk.CTkFont(size=14),
+            justify="left",
+            anchor="nw"
+        )
+        help_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
     def setup_settings_section(self, parent):
         """Configurar sección de configuraciones"""
         settings_frame = ctk.CTkFrame(parent, corner_radius=10)
-        settings_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
-        settings_frame.grid_columnconfigure((0, 1, 2), weight=1)
-        
+        settings_frame.grid(row=0, column=0, sticky="new", pady=(0, 20))
+        settings_frame.grid_columnconfigure(0, weight=1)
+
         # Título de configuraciones
         settings_title = ctk.CTkLabel(
             settings_frame,
             text="Configuration",
             font=ctk.CTkFont(size=16, weight="bold")
         )
-        settings_title.grid(row=0, column=0, columnspan=3, pady=(15, 10), sticky="w", padx=20)
-        
+        settings_title.grid(row=0, column=0, pady=(15, 20), sticky="w", padx=20)
+
         # Hotkey
         hotkey_label = ctk.CTkLabel(
             settings_frame,
             text="Hotkey:",
             font=ctk.CTkFont(size=12)
         )
-        hotkey_label.grid(row=1, column=0, pady=5, sticky="w", padx=20)
-        
+        hotkey_label.grid(row=1, column=0, pady=(5, 0), sticky="w", padx=20)
+
         self.hotkey_value = ctk.CTkLabel(
             settings_frame,
             text="F12",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=("blue", "lightblue")
         )
-        self.hotkey_value.grid(row=2, column=0, pady=(0, 15), sticky="w", padx=20)
-        
+        self.hotkey_value.grid(row=2, column=0, pady=(0, 20), sticky="w", padx=20)
+
         # Modelo
         model_label = ctk.CTkLabel(
             settings_frame,
             text="Transcription Model:",
             font=ctk.CTkFont(size=12)
         )
-        model_label.grid(row=1, column=1, pady=5, sticky="w", padx=20)
-        
+        model_label.grid(row=3, column=0, pady=(5, 0), sticky="w", padx=20)
+
         # Dropdown de modelos con información rica
         self.model_options = {
             "⚡ Tiny - Very Fast (39MB)": {
@@ -235,10 +291,11 @@ class SimpleVoiceGUI:
             font=ctk.CTkFont(size=11),
             width=220,
             height=28,
-            command=self.on_model_change
+            command=self.on_model_change,
+            state="readonly"
         )
         self.model_dropdown.set("🚀 Turbo - Optimized (805MB)")  # Valor por defecto
-        self.model_dropdown.grid(row=2, column=1, pady=(0, 15), sticky="w", padx=20)
+        self.model_dropdown.grid(row=4, column=0, pady=(0, 20), sticky="w", padx=20)
         
         # Idioma
         language_label = ctk.CTkLabel(
@@ -246,7 +303,7 @@ class SimpleVoiceGUI:
             text="Language:",
             font=ctk.CTkFont(size=12)
         )
-        language_label.grid(row=1, column=2, pady=5, sticky="w", padx=20)
+        language_label.grid(row=5, column=0, pady=(5, 0), sticky="w", padx=20)
         
         # Dropdown de idiomas
         self.language_options = {
@@ -273,10 +330,11 @@ class SimpleVoiceGUI:
             font=ctk.CTkFont(size=12),
             width=160,
             height=28,
-            command=self.on_language_change
+            command=self.on_language_change,
+            state="readonly"
         )
         self.language_dropdown.set("🌐 Auto-detect")  # Valor por defecto
-        self.language_dropdown.grid(row=2, column=2, pady=(0, 15), sticky="w", padx=20)
+        self.language_dropdown.grid(row=6, column=0, pady=(0, 20), sticky="w", padx=20)
         
     def on_language_change(self, selection):
         """Callback cuando cambia el idioma seleccionado"""
@@ -381,7 +439,7 @@ class SimpleVoiceGUI:
     def setup_recording_controls(self, parent):
         """Configurar controles de grabación"""
         controls_frame = ctk.CTkFrame(parent, corner_radius=10)
-        controls_frame.grid(row=1, column=0, sticky="ew", pady=(0, 20))
+        controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
         controls_frame.grid_columnconfigure(0, weight=1)
         
         # Botón principal de grabación
@@ -407,7 +465,7 @@ class SimpleVoiceGUI:
     def setup_transcription_section(self, parent):
         """Configurar sección de transcripción"""
         trans_frame = ctk.CTkFrame(parent, corner_radius=10)
-        trans_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 20))
+        trans_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
         trans_frame.grid_columnconfigure(0, weight=1)
         trans_frame.grid_rowconfigure(1, weight=1)
         
@@ -447,7 +505,7 @@ class SimpleVoiceGUI:
     def setup_logs_section(self, parent):
         """Configurar sección de logs"""
         logs_frame = ctk.CTkFrame(parent, corner_radius=10)
-        logs_frame.grid(row=3, column=0, sticky="ew", pady=(0, 20))
+        logs_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
         logs_frame.grid_columnconfigure(0, weight=1)
         
         # Header de logs
@@ -838,99 +896,6 @@ class SimpleVoiceGUI:
             else:
                 messagebox.showwarning("Logs", "Log file not found")
                 
-    def show_settings(self):
-        """Mostrar configuraciones avanzadas"""
-        settings_window = ctk.CTkToplevel(self.root)
-        settings_window.title("Advanced Settings")
-        settings_window.geometry("500x400")
-        settings_window.transient(self.root)
-        settings_window.grab_set()
-        
-        # Título
-        title = ctk.CTkLabel(
-            settings_window,
-            text="Advanced Settings",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title.pack(pady=20)
-        
-        # Frame principal
-        content_frame = ctk.CTkFrame(settings_window)
-        content_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        
-        # Información de archivos
-        files_label = ctk.CTkLabel(
-            content_frame,
-            text="📁 File Locations",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        files_label.pack(pady=(20, 10), anchor="w", padx=20)
-        
-        # Logs
-        logs_info = ctk.CTkLabel(
-            content_frame,
-            text=f"Logs: ~/SimpleVoice/logs/",
-            font=ctk.CTkFont(size=12)
-        )
-        logs_info.pack(anchor="w", padx=20)
-        
-        # Información técnica
-        tech_label = ctk.CTkLabel(
-            content_frame,
-            text="🔧 Technical Information",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        tech_label.pack(pady=(20, 10), anchor="w", padx=20)
-        
-        tech_info = ctk.CTkLabel(
-            content_frame,
-            text="""• Engine: OpenAI Whisper
-• Model version: Turbo (1.6GB)
-• Audio format: WAV 16kHz mono
-• Hotkeys: Global (work from any app)
-• Auto logs: Enabled""",
-            font=ctk.CTkFont(size=12),
-            justify="left"
-        )
-        tech_info.pack(anchor="w", padx=20, pady=(0, 20))
-        
-        # Botón cerrar
-        close_button = ctk.CTkButton(
-            content_frame,
-            text="Close",
-            command=settings_window.destroy
-        )
-        close_button.pack(pady=20)
-        
-    def show_help(self):
-        """Mostrar ayuda"""
-        help_text = """
-        🎙️ SimpleVoice - Voice Transcriptor
-        
-        📖 How to use:
-        1. Press F12 or the "RECORD" button to start
-        2. Speak clearly into the microphone
-        3. Press F12 again or "STOP" to finish
-        4. The text is automatically transcribed
-        5. It's automatically copied to clipboard
-        
-        🔧 Features:
-        • Global F12 hotkey
-        • AI transcription (Whisper)
-        • Auto-copy to clipboard
-        • Detailed system logs
-        • Modern and friendly interface
-        
-        📝 Notes:
-        • Requires functional microphone
-        • Optimized for multiple languages
-        • Logs are saved in ~/SimpleVoice/logs/
-        """
-        
-        messagebox.showinfo("❓ Help", help_text)
-        
-
-        
     def run(self):
         """Ejecutar la aplicación"""
         # Mostrar ventana al inicio
