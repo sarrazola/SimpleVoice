@@ -83,7 +83,7 @@ class SimpleVoiceGUI:
         """Configurar el menú lateral"""
         sidebar_frame = ctk.CTkFrame(self.root, width=120, corner_radius=0)
         sidebar_frame.grid(row=0, column=0, sticky="nsw")
-        sidebar_frame.grid_rowconfigure(4, weight=1)
+        sidebar_frame.grid_rowconfigure(5, weight=1)
 
         logo_label = ctk.CTkLabel(sidebar_frame, text="SimpleVoice", font=ctk.CTkFont(size=20, weight="bold"))
         logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -97,12 +97,16 @@ class SimpleVoiceGUI:
         help_button = ctk.CTkButton(sidebar_frame, text="❓ Help", command=lambda: self.show_view("help"))
         help_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
+        logs_button = ctk.CTkButton(sidebar_frame, text="📝 Logs", command=lambda: self.show_view("logs"))
+        logs_button.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+
     def show_view(self, view_name):
         """Mostrar la vista seleccionada (home o help)"""
         # Ocultar todos los frames de contenido
         self.home_frame.grid_remove()
         self.help_frame.grid_remove()
         self.settings_frame.grid_remove()
+        self.logs_frame.grid_remove()
 
         # Mostrar el frame seleccionado
         if view_name == "home":
@@ -111,6 +115,8 @@ class SimpleVoiceGUI:
             self.help_frame.grid()
         elif view_name == "settings":
             self.settings_frame.grid()
+        elif view_name == "logs":
+            self.logs_frame.grid()
         
     def setup_header(self, parent):
         """Configurar header con título y estado"""
@@ -160,11 +166,17 @@ class SimpleVoiceGUI:
         self.settings_frame.grid_columnconfigure(0, weight=1)
         self.settings_frame.grid_rowconfigure(0, weight=0)
 
+        # Frame para la vista "Logs"
+        self.logs_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.logs_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.logs_frame.grid_columnconfigure(0, weight=1)
+        self.logs_frame.grid_rowconfigure(0, weight=1)
+
         # Contenido de las vistas
         self.setup_settings_section(self.settings_frame)
         self.setup_recording_controls(self.home_frame)
         self.setup_transcription_section(self.home_frame)
-        self.setup_logs_section(self.home_frame)
+        self.setup_logs_section(self.logs_frame)
         self.setup_help_content(self.help_frame)
         
     def setup_help_content(self, parent):
@@ -505,8 +517,9 @@ class SimpleVoiceGUI:
     def setup_logs_section(self, parent):
         """Configurar sección de logs"""
         logs_frame = ctk.CTkFrame(parent, corner_radius=10)
-        logs_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        logs_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 20))
         logs_frame.grid_columnconfigure(0, weight=1)
+        logs_frame.grid_rowconfigure(1, weight=1)
         
         # Header de logs
         logs_header = ctk.CTkFrame(logs_frame, corner_radius=0, fg_color="transparent")
@@ -524,15 +537,6 @@ class SimpleVoiceGUI:
         logs_buttons = ctk.CTkFrame(logs_header, corner_radius=0, fg_color="transparent")
         logs_buttons.grid(row=0, column=1, sticky="e")
         
-        self.logs_toggle = ctk.CTkButton(
-            logs_buttons,
-            text="👁️ Show",
-            width=80,
-            height=28,
-            command=self.toggle_logs
-        )
-        self.logs_toggle.grid(row=0, column=0, padx=(0, 5))
-        
         self.view_logs_button = ctk.CTkButton(
             logs_buttons,
             text="📄 File",
@@ -540,11 +544,12 @@ class SimpleVoiceGUI:
             height=28,
             command=self.open_log_file
         )
-        self.view_logs_button.grid(row=0, column=1)
+        self.view_logs_button.grid(row=0, column=0)
         
-        # Área de logs (inicialmente oculta)
+        # Área de logs (siempre visible)
         self.logs_container = ctk.CTkFrame(logs_frame, corner_radius=8)
-        self.logs_visible = False
+        self.logs_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(15, 15))
+        self.logs_visible = True
         
         self.logs_text = ctk.CTkTextbox(
             self.logs_container,
@@ -554,8 +559,6 @@ class SimpleVoiceGUI:
         self.logs_text.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
         self.logs_container.grid_columnconfigure(0, weight=1)
         self.logs_container.grid_rowconfigure(0, weight=1)
-        
-
         
     def setup_system_tray(self):
         """Configurar icono del system tray usando multiprocessing para macOS"""
@@ -855,17 +858,6 @@ class SimpleVoiceGUI:
                 self.add_log("❌ Error copying to clipboard")
         else:
             self.add_log("⚠️ No text to copy")
-            
-    def toggle_logs(self):
-        """Mostrar/ocultar logs"""
-        if self.logs_visible:
-            self.logs_container.grid_remove()
-            self.logs_toggle.configure(text="👁️ Show")
-            self.logs_visible = False
-        else:
-            self.logs_container.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 15))
-            self.logs_toggle.configure(text="👁️ Hide")
-            self.logs_visible = True
             
     def add_log(self, message: str):
         """Añadir mensaje a los logs"""
