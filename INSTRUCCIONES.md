@@ -1,166 +1,193 @@
-# 🎙️ SimpleVoice - Construcción de App de Escritorio
+# 🎙️ SimpleVoice - Desktop App Construction
 
-## 📋 Resumen del Proyecto
+## 📋 Project Summary
 
-Tu aplicación SimpleVoice ha sido convertida en una app de escritorio moderna con:
+Your SimpleVoice application has been converted into a modern desktop app with:
 
-- ✅ **Interfaz gráfica moderna** con CustomTkinter
-- ✅ **Logs visibles** tanto en GUI como en archivos
-- ✅ **Hotkeys globales** (F12 funciona desde cualquier app)
-- ✅ **Ejecutable independiente** (usuario no necesita Python)
-- ✅ **Logs automáticos** guardados en ~/SimpleVoice/logs/
-- ✅ **Empaquetado automatizado** con PyInstaller
+- ✅ **Modern graphical interface** with CustomTkinter
+- ✅ **Visible logs** both in GUI and files
+- ✅ **Global hotkeys** (F12 works from any app)
+- ✅ **Independent executable** (user doesn't need Python)
+- ✅ **Automatic logs** saved in ~/SimpleVoice/logs/
+- ✅ **Automated packaging** with PyInstaller
 
-## 🗂️ Estructura de Archivos Creada
+## 🗂️ Created File Structure
 
 ```
 SimpleVoice/
 ├── src/
-│   ├── __init__.py           # Paquete Python
-│   ├── recorder.py           # Lógica de grabación (refactorizada)
-│   ├── gui.py               # Interfaz gráfica moderna
-│   └── main_gui.py          # Punto de entrada principal
-├── requirements-gui.txt      # Dependencias para GUI
-├── SimpleVoice.spec         # Configuración PyInstaller
-├── build.py                 # Script de construcción automatizado
-└── INSTRUCCIONES.md         # Este archivo
+│   ├── __init__.py           # Python package
+│   ├── recorder.py           # Recording logic (refactored)
+│   ├── gui.py               # Modern graphical interface
+│   └── main_gui.py          # Main entry point
+├── requirements-gui.txt      # GUI dependencies
+├── SimpleVoice.spec         # PyInstaller configuration
+├── build.py                 # Automated build script
+└── INSTRUCTIONS.md          # This file
 ```
 
-## 🚀 Pasos para Construir la App
+## 🚀 Steps to Build the App
 
-### 1. Instalar Dependencias
+### 1. Install Dependencies
 ```bash
 pip install -r requirements-gui.txt
 ```
 
-### 2. Construir Aplicación (Automático)
+### 2. Build Application (Automatic)
 ```bash
 python build.py
 ```
 
-### 3. Construir Aplicación (Manual)
+### 3. Build Application (Manual)
 ```bash
 pyinstaller SimpleVoice.spec --noconfirm
 ```
 
-## 📁 Archivos Generados
+## 📁 Generated Files
 
-Después de la construcción encontrarás:
+After building you'll find:
 
-- `dist/SimpleVoice.app` (macOS) o `dist/SimpleVoice` (Linux/Windows)
-- `SimpleVoice-[platform].zip` - Paquete de distribución
-- `README-Distribution.md` - Instrucciones para usuarios finales
+- `dist/SimpleVoice.app` (macOS) or `dist/SimpleVoice` (Linux/Windows)
+- `SimpleVoice-[platform].zip` - Distribution package
+- `README-Distribution.md` - Instructions for end users
 
-## 🎯 Cómo Usar la Aplicación
+## 🎯 How to Use the Application
 
-### Para Desarrolladores (Modo Desarrollo)
+### For Developers (Development Mode)
 ```bash
 cd src
 python main_gui.py
 ```
 
-### Para Usuarios Finales
-1. Descomprimir el archivo ZIP
-2. Abrir SimpleVoice.app (macOS) o SimpleVoice.exe (Windows)
-3. **Usar desde la barra de menú** (recomendado):
-   - Buscar el icono azul circular en la barra de menú superior
-   - Clic derecho → "🎙️ Iniciar Grabación"
-   - Hablar claramente
-   - Clic derecho → "⏹️ Detener Grabación"
-   - El texto se copia automáticamente al portapapeles
-4. **Usar desde la interfaz gráfica**:
-   - Presionar F12 para grabar
-   - Hablar claramente
-   - Presionar F12 para parar y transcribir
-5. **Cerrar la ventana** no cierra la app (queda en system tray)
-6. Para **salir completamente**: System Tray → "❌ Salir"
+### For End Users
+1. Extract the ZIP file
+2. Open SimpleVoice.app (macOS) or SimpleVoice.exe (Windows)
+3. **Use from menu bar** (recommended):
+   - Look for the blue circular icon in the top menu bar
+   - Right click → "🎙️ Start Recording"
+   - Speak clearly
+   - Right click → "⏹️ Stop Recording"
+   - Text is automatically copied to clipboard
+4. **Use from graphical interface**:
+   - Press F12 to record
+   - Speak clearly
+   - Press F12 to stop and transcribe
+5. **Closing the window** doesn't close the app (stays in system tray)
+6. To **exit completely**: System Tray → "❌ Quit"
 
-## 📊 Sistema de Logs
+## 📊 Logging System
 
-### Logs Visibles en GUI
-- Área de logs desplegable en la interfaz
-- Botón "Ver Logs" para abrir archivo completo
-- Logs en tiempo real durante grabación
+### Visible Logs in GUI
+- Collapsible logs area in the interface
+- "View Logs" button to open complete file
+- Real-time logs during recording
 
-### Logs en Archivos
-- Ubicación: `~/SimpleVoice/logs/`
-- Formato: `simplevoice_YYYYMMDD_HHMMSS.log`
-- Logs detallados para depuración
+### Logs in Files
+- Location: `~/SimpleVoice/logs/`
+- Format: `simplevoice_YYYYMMDD_HHMMSS.log`
+- Detailed logs for debugging
 
-## 🔧 Características Avanzadas
+## 🔧 Advanced Features
 
-### Interfaz Gráfica
-- **Tema oscuro** por defecto
-- **Botones grandes** y fáciles de usar
-- **Estados visuales** (grabando, procesando, listo)
-- **Área de transcripción** editable
-- **Logs desplegables** para monitoreo
+### Graphical Interface
+- **System theme** by default
+- **Large buttons** and easy to use
+- **Visual states** (recording, processing, ready)
+- **Editable transcription area**
+- **Collapsible logs** for monitoring
 
-### Funcionalidades
-- **Hotkey global F12** (funciona desde cualquier app)
-- **Copia automática** al portapapeles
-- **Transcripción en español** con Whisper Turbo
-- **Gestión de recursos** automática
-- **Notificaciones visuales** de estado
-- **🆕 System Tray**: Icono permanente en la barra de menú de macOS
-  - **Estado visual**: Azul (listo) / Rojo (grabando)
-  - **🎙️ Grabar**: Iniciar/detener grabación desde el menú
-  - **⚙️ Opciones**: Mostrar/ocultar la ventana principal
-  - **❌ Salir**: Cerrar completamente la aplicación
-  - **Sincronización**: Estado se actualiza automáticamente con F12
-- **🌍 Selección de Idioma**: Dropdown con 15+ idiomas soportados
-  - **Auto-detección** (por defecto): Whisper detecta automáticamente el idioma
-  - **Cambio inmediato**: Sin necesidad de reiniciar la aplicación
-  - **Idiomas incluidos**: Español, Inglés, Francés, Alemán, Italiano, Portugués, Japonés, Coreano, Chino, Ruso, Holandés, Sueco, Noruego, Danés
+### Functionalities
+- **Global F12 hotkey** (works from any app)
+- **Automatic copy** to clipboard
+- **Multi-language transcription** with Whisper Turbo
+- **Automatic resource management**
+- **Visual status notifications**
+- **🆕 System Tray**: Permanent icon in macOS menu bar
+  - **Visual state**: Blue (ready) / Red (recording)
+  - **🎙️ Record**: Start/stop recording from menu
+  - **⚙️ Options**: Show/hide main window
+  - **❌ Quit**: Completely close the application
+  - **Synchronization**: State updates automatically with F12
+- **🌍 Language Selection**: Dropdown with 15+ supported languages
+  - **Auto-detection** (default): Whisper automatically detects language
+  - **Immediate change**: No need to restart application
+  - **Languages included**: Spanish, English, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Russian, Dutch, Swedish, Norwegian, Danish
+- **🤖 Model Selection**: Dropdown with rich performance information
+  - **6 available models**: Tiny, Base, Small, Medium, Large, Turbo
+  - **Visual information**: Speed (⚡) and accuracy (⭐) for each model
+  - **Automatic download**: Models download when selected
+  - **Sizes**: From 39MB (Tiny) to 1.5GB (Large)
+  - **Recommended**: Turbo (805MB) - Optimal speed/accuracy balance
 
-## 🛠️ Personalización
+## 🛠️ Customization
 
-### Cambiar Idioma
-**🎯 Desde la Interfaz Gráfica (Recomendado):**
-- Usar el dropdown "Idioma" en la sección de configuración
-- Seleccionar entre 15+ idiomas disponibles
-- Incluye auto-detección de idioma
-- Cambio inmediato, sin reiniciar
+### Change Language
+**🎯 From Graphical Interface (Recommended):**
+- Use the "Language" dropdown in the configuration section
+- Select from 15+ available languages
+- Includes auto-detection of language
+- Immediate change, no restart needed
 
-**🔧 Programáticamente:**
+**🔧 Programmatically:**
 ```python
-# En el código, si necesitas cambiar por defecto
-self.recorder.set_language("en")  # Cambiar a inglés
-self.recorder.set_language(None)  # Auto-detectar
+# In code, if you need to change default
+self.recorder.set_language("en")  # Change to English
+self.recorder.set_language(None)  # Auto-detect
 ```
 
-### Cambiar Hotkey
-En `src/gui.py`, línea ~220:
+### Change Model
+**🎯 From Graphical Interface (Recommended):**
+- Use the "Transcription Model" dropdown
+- View speed and accuracy information for each model
+- Automatic download if model isn't available
+- Immediate change with visual feedback
+
+**📊 Model Guide:**
+- **⚡ Tiny (39MB)**: For very fast basic transcription
+- **🏃 Base (74MB)**: Lightweight general use
+- **⚖️ Small (244MB)**: Ideal speed/quality balance
+- **🎯 Medium (769MB)**: High accuracy for complex audio
+- **👑 Large (1.5GB)**: Maximum accuracy for critical cases
+- **🚀 Turbo (805MB)**: Recommended - Optimized and accurate
+
+**🔧 Programmatically:**
 ```python
-if key == keyboard.Key.f12:  # Cambiar por otra tecla
+# Change model in code
+self.recorder.set_model("small")  # Change to small model
 ```
 
-### Cambiar Tema
-En `src/gui.py`, línea ~19:
+### Change Hotkey
+In `src/gui.py`, line ~220:
 ```python
-ctk.set_appearance_mode("dark")  # "light" o "system"
+if key == keyboard.Key.f12:  # Change to another key
 ```
 
-## 📦 Distribución
+### Change Theme
+In `src/gui.py`, line ~19:
+```python
+ctk.set_appearance_mode("system")  # "light", "dark", or "system"
+```
 
-### Crear Paquete de Distribución
+## 📦 Distribution
+
+### Create Distribution Package
 ```bash
 python build.py
 ```
 
-### Compartir con Usuarios
-1. Enviar archivo `SimpleVoice-[platform].zip`
-2. Incluir `README-Distribution.md`
-3. Mencionar que necesitan permisos de micrófono
+### Share with Users
+1. Send `SimpleVoice-[platform].zip` file
+2. Include `README-Distribution.md`
+3. Mention they need microphone permissions
 
-## 🔧 Solución de Problemas
+## 🔧 Troubleshooting
 
-### Error: "No se encontró CustomTkinter"
+### Error: "CustomTkinter not found"
 ```bash
 pip install customtkinter
 ```
 
-### Error: "No se encontró PyAudio"
+### Error: "PyAudio not found"
 ```bash
 # macOS
 brew install portaudio
@@ -171,33 +198,20 @@ sudo apt-get install portaudio19-dev
 pip install pyaudio
 ```
 
-### Error: "No se encontró Whisper"
-```bash
-pip install openai-whisper
-```
+### Error: "Permission denied for microphone"
+1. Go to System Preferences → Security & Privacy → Privacy
+2. Click "Microphone"
+3. Check the box next to SimpleVoice
+4. Restart the application
 
-### Logs para Depuración
-- Revisa `~/SimpleVoice/logs/` para errores detallados
-- Ejecuta en modo desarrollo: `cd src && python main_gui.py`
+### Error: "F12 hotkey not working"
+1. Go to System Preferences → Security & Privacy → Privacy
+2. Click "Accessibility"
+3. Add SimpleVoice to the list and check the box
+4. Restart the application
 
-## 📈 Próximos Pasos Sugeridos
+## 🎉 Ready to Use!
 
-1. **Probar** la aplicación en modo desarrollo
-2. **Construir** el ejecutable
-3. **Probar** el ejecutable en sistema limpio
-4. **Distribuir** el archivo ZIP
-5. **Recopilar feedback** de usuarios
+SimpleVoice is optimized to provide you with the best voice transcription experience. With its intuitive interface and powerful AI technology, converting your voice to text has never been easier.
 
-## 💡 Notas Importantes
-
-- Los logs se guardan automáticamente para feedback
-- La aplicación necesita permisos de micrófono
-- F12 es la tecla global (funciona desde cualquier app)
-- La primera carga del modelo Whisper puede tomar tiempo
-- En macOS, puede requerir permisos de seguridad
-
-## 🎉 ¡Listo!
-
-Tu aplicación SimpleVoice está lista para ser una app de escritorio profesional. El sistema de logs te permitirá recibir feedback detallado y mejorar la experiencia de usuario.
-
-¿Necesitas alguna personalización adicional o tienes preguntas sobre el proceso? 
+**Press F12 and start transcribing! 🎙️** 

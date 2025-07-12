@@ -54,23 +54,63 @@ class SimpleVoiceGUI:
         # Configurar protocolo de cierre (ocultar en lugar de cerrar)
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         
-        # Configurar grid
-        self.root.grid_columnconfigure(0, weight=1)
+        # Configurar grid para sidebar y contenido
+        self.root.grid_columnconfigure(0, weight=0)  # Sidebar (no se expande)
+        self.root.grid_columnconfigure(1, weight=1)  # Contenido (se expande)
         self.root.grid_rowconfigure(0, weight=1)
         
     def setup_widgets(self):
         """Configurar widgets de la interfaz"""
-        # Frame principal sin border para look más nativo
-        main_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
-        main_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
-        main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(1, weight=1)
+        # Sidebar
+        self.setup_sidebar()
+
+        # Frame principal para el contenido
+        self.main_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color="transparent")
+        self.main_frame.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)
         
         # Header con título y configuraciones
-        self.setup_header(main_frame)
+        self.setup_header(self.main_frame)
         
         # Contenido principal con configuraciones y controles
-        self.setup_main_content(main_frame)
+        self.setup_main_content(self.main_frame)
+
+        # Mostrar la vista "Home" por defecto
+        self.show_view("home")
+        
+    def setup_sidebar(self):
+        """Configurar el menú lateral"""
+        sidebar_frame = ctk.CTkFrame(self.root, width=120, corner_radius=0)
+        sidebar_frame.grid(row=0, column=0, sticky="nsw")
+        sidebar_frame.grid_rowconfigure(4, weight=1)
+
+        logo_label = ctk.CTkLabel(sidebar_frame, text="SimpleVoice", font=ctk.CTkFont(size=20, weight="bold"))
+        logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        home_button = ctk.CTkButton(sidebar_frame, text="🏠 Home", command=lambda: self.show_view("home"))
+        home_button.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+
+        settings_button = ctk.CTkButton(sidebar_frame, text="⚙️ Settings", command=lambda: self.show_view("settings"))
+        settings_button.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+
+        help_button = ctk.CTkButton(sidebar_frame, text="❓ Help", command=lambda: self.show_view("help"))
+        help_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+
+    def show_view(self, view_name):
+        """Mostrar la vista seleccionada (home o help)"""
+        # Ocultar todos los frames de contenido
+        self.home_frame.grid_remove()
+        self.help_frame.grid_remove()
+        self.settings_frame.grid_remove()
+
+        # Mostrar el frame seleccionado
+        if view_name == "home":
+            self.home_frame.grid()
+        elif view_name == "help":
+            self.help_frame.grid()
+        elif view_name == "settings":
+            self.settings_frame.grid()
         
     def setup_header(self, parent):
         """Configurar header con título y estado"""
@@ -91,36 +131,10 @@ class SimpleVoiceGUI:
         )
         title_label.grid(row=0, column=0, sticky="w")
         
-        # Botones de menú
-        menu_buttons = ctk.CTkFrame(title_row, corner_radius=0, fg_color="transparent")
-        menu_buttons.grid(row=0, column=1, sticky="e")
-        
-        # Botón configuraciones
-        settings_btn = ctk.CTkButton(
-            menu_buttons,
-            text="⚙️",
-            width=30,
-            height=30,
-            font=ctk.CTkFont(size=14),
-            command=self.show_settings
-        )
-        settings_btn.grid(row=0, column=0, padx=(0, 5))
-        
-        # Botón ayuda
-        help_btn = ctk.CTkButton(
-            menu_buttons,
-            text="?",
-            width=30,
-            height=30,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            command=self.show_help
-        )
-        help_btn.grid(row=0, column=1)
-        
         # Estado
         self.status_label = ctk.CTkLabel(
             header_frame,
-            text="Estado: Inicializando...",
+            text="Status: Initializing...",
             font=ctk.CTkFont(size=14),
             text_color=("gray50", "gray50")
         )
@@ -128,94 +142,186 @@ class SimpleVoiceGUI:
         
     def setup_main_content(self, parent):
         """Configurar contenido principal"""
-        content_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
-        content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
-        content_frame.grid_columnconfigure(0, weight=1)
-        content_frame.grid_rowconfigure(2, weight=1)
+        # Frame para la vista "Home"
+        self.home_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.home_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.home_frame.grid_columnconfigure(0, weight=1)
+        self.home_frame.grid_rowconfigure(1, weight=1)
+
+        # Frame para la vista "Help"
+        self.help_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.help_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.help_frame.grid_columnconfigure(0, weight=1)
+        self.help_frame.grid_rowconfigure(0, weight=1)
+
+        # Frame para la vista "Settings"
+        self.settings_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.settings_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.settings_frame.grid_columnconfigure(0, weight=1)
+        self.settings_frame.grid_rowconfigure(0, weight=0)
+
+        # Contenido de las vistas
+        self.setup_settings_section(self.settings_frame)
+        self.setup_recording_controls(self.home_frame)
+        self.setup_transcription_section(self.home_frame)
+        self.setup_logs_section(self.home_frame)
+        self.setup_help_content(self.help_frame)
         
-        # Configuraciones visibles
-        self.setup_settings_section(content_frame)
+    def setup_help_content(self, parent):
+        """Configurar el contenido de la sección de ayuda"""
+        help_text = """
+        🎙️ SimpleVoice - Voice Transcriptor
         
-        # Controles de grabación
-        self.setup_recording_controls(content_frame)
+        📖 How to use:
+        1. Press F12 or the "RECORD" button to start
+        2. Speak clearly into the microphone
+        3. Press F12 again or "STOP" to finish
+        4. The text is automatically transcribed
+        5. It's automatically copied to clipboard
         
-        # Área de transcripción
-        self.setup_transcription_section(content_frame)
+        🔧 Features:
+        • Global F12 hotkey
+        • AI transcription (Whisper)
+        • Auto-copy to clipboard
+        • Detailed system logs
+        • Modern and friendly interface
         
-        # Área de logs (inicialmente oculta)
-        self.setup_logs_section(content_frame)
+        📝 Notes:
+        • Requires functional microphone
+        • Optimized for multiple languages
+        • Logs are saved in ~/SimpleVoice/logs/
+        """
         
+        help_label = ctk.CTkLabel(
+            parent,
+            text=help_text,
+            font=ctk.CTkFont(size=14),
+            justify="left",
+            anchor="nw"
+        )
+        help_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
     def setup_settings_section(self, parent):
         """Configurar sección de configuraciones"""
         settings_frame = ctk.CTkFrame(parent, corner_radius=10)
-        settings_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
-        settings_frame.grid_columnconfigure((0, 1, 2), weight=1)
-        
+        settings_frame.grid(row=0, column=0, sticky="new", pady=(0, 20))
+        settings_frame.grid_columnconfigure(0, weight=1)
+
         # Título de configuraciones
         settings_title = ctk.CTkLabel(
             settings_frame,
-            text="Configuración",
+            text="Configuration",
             font=ctk.CTkFont(size=16, weight="bold")
         )
-        settings_title.grid(row=0, column=0, columnspan=3, pady=(15, 10), sticky="w", padx=20)
-        
+        settings_title.grid(row=0, column=0, pady=(15, 20), sticky="w", padx=20)
+
         # Hotkey
         hotkey_label = ctk.CTkLabel(
             settings_frame,
-            text="Tecla de acceso rápido:",
+            text="Hotkey:",
             font=ctk.CTkFont(size=12)
         )
-        hotkey_label.grid(row=1, column=0, pady=5, sticky="w", padx=20)
-        
+        hotkey_label.grid(row=1, column=0, pady=(5, 0), sticky="w", padx=20)
+
         self.hotkey_value = ctk.CTkLabel(
             settings_frame,
             text="F12",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=("blue", "lightblue")
         )
-        self.hotkey_value.grid(row=2, column=0, pady=(0, 15), sticky="w", padx=20)
-        
+        self.hotkey_value.grid(row=2, column=0, pady=(0, 20), sticky="w", padx=20)
+
         # Modelo
         model_label = ctk.CTkLabel(
             settings_frame,
-            text="Modelo de transcripción:",
+            text="Transcription Model:",
             font=ctk.CTkFont(size=12)
         )
-        model_label.grid(row=1, column=1, pady=5, sticky="w", padx=20)
+        model_label.grid(row=3, column=0, pady=(5, 0), sticky="w", padx=20)
+
+        # Dropdown de modelos con información rica
+        self.model_options = {
+            "⚡ Tiny - Very Fast (39MB)": {
+                "model": "tiny",
+                "size": "39MB",
+                "speed": "⚡⚡⚡⚡⚡",
+                "accuracy": "⭐⭐",
+                "description": "Basic transcription, very fast"
+            },
+            "🏃 Base - Fast (74MB)": {
+                "model": "base", 
+                "size": "74MB",
+                "speed": "⚡⚡⚡⚡",
+                "accuracy": "⭐⭐⭐",
+                "description": "General lightweight usage"
+            },
+            "⚖️ Small - Balanced (244MB)": {
+                "model": "small",
+                "size": "244MB", 
+                "speed": "⚡⚡⚡",
+                "accuracy": "⭐⭐⭐⭐",
+                "description": "Speed/quality balance"
+            },
+            "🎯 Medium - Accurate (769MB)": {
+                "model": "medium",
+                "size": "769MB",
+                "speed": "⚡⚡", 
+                "accuracy": "⭐⭐⭐⭐⭐",
+                "description": "High accuracy"
+            },
+            "👑 Large - Maximum (1.5GB)": {
+                "model": "large",
+                "size": "1.5GB",
+                "speed": "⚡",
+                "accuracy": "⭐⭐⭐⭐⭐", 
+                "description": "Maximum accuracy"
+            },
+            "🚀 Turbo - Optimized (805MB)": {
+                "model": "turbo",
+                "size": "805MB",
+                "speed": "⚡⚡⚡",
+                "accuracy": "⭐⭐⭐⭐⭐",
+                "description": "Fast and accurate (recommended)"
+            }
+        }
         
-        self.model_value = ctk.CTkLabel(
+        self.model_dropdown = ctk.CTkComboBox(
             settings_frame,
-            text="Whisper Turbo",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=("blue", "lightblue")
+            values=list(self.model_options.keys()),
+            font=ctk.CTkFont(size=11),
+            width=220,
+            height=28,
+            command=self.on_model_change,
+            state="readonly"
         )
-        self.model_value.grid(row=2, column=1, pady=(0, 15), sticky="w", padx=20)
+        self.model_dropdown.set("🚀 Turbo - Optimized (805MB)")  # Valor por defecto
+        self.model_dropdown.grid(row=4, column=0, pady=(0, 20), sticky="w", padx=20)
         
         # Idioma
         language_label = ctk.CTkLabel(
             settings_frame,
-            text="Idioma:",
+            text="Language:",
             font=ctk.CTkFont(size=12)
         )
-        language_label.grid(row=1, column=2, pady=5, sticky="w", padx=20)
+        language_label.grid(row=5, column=0, pady=(5, 0), sticky="w", padx=20)
         
         # Dropdown de idiomas
         self.language_options = {
-            "🌐 Auto-detectar": None,
-            "🇪🇸 Español": "es",
-            "🇺🇸 Inglés": "en",
-            "🇫🇷 Francés": "fr",
-            "🇩🇪 Alemán": "de",
-            "🇮🇹 Italiano": "it",
-            "🇵🇹 Portugués": "pt",
-            "🇯🇵 Japonés": "ja",
-            "🇰🇷 Coreano": "ko",
-            "🇨🇳 Chino": "zh",
-            "🇷🇺 Ruso": "ru",
-            "🇳🇱 Holandés": "nl",
-            "🇸🇪 Sueco": "sv",
-            "🇳🇴 Noruego": "no",
-            "🇩🇰 Danés": "da"
+            "🌐 Auto-detect": None,
+            "🇺🇸 English": "en",
+            "🇪🇸 Spanish": "es",
+            "🇫🇷 French": "fr",
+            "🇩🇪 German": "de",
+            "🇮🇹 Italian": "it",
+            "🇵🇹 Portuguese": "pt",
+            "🇯🇵 Japanese": "ja",
+            "🇰🇷 Korean": "ko",
+            "🇨🇳 Chinese": "zh",
+            "🇷🇺 Russian": "ru",
+            "🇳🇱 Dutch": "nl",
+            "🇸🇪 Swedish": "sv",
+            "🇳🇴 Norwegian": "no",
+            "🇩🇰 Danish": "da"
         }
         
         self.language_dropdown = ctk.CTkComboBox(
@@ -224,20 +330,107 @@ class SimpleVoiceGUI:
             font=ctk.CTkFont(size=12),
             width=160,
             height=28,
-            command=self.on_language_change
+            command=self.on_language_change,
+            state="readonly"
         )
-        self.language_dropdown.set("🌐 Auto-detectar")  # Valor por defecto
-        self.language_dropdown.grid(row=2, column=2, pady=(0, 15), sticky="w", padx=20)
+        self.language_dropdown.set("🌐 Auto-detect")  # Valor por defecto
+        self.language_dropdown.grid(row=6, column=0, pady=(0, 20), sticky="w", padx=20)
         
     def on_language_change(self, selection):
         """Callback cuando cambia el idioma seleccionado"""
         language_code = self.language_options[selection]
-        self.add_log(f"🌍 Idioma cambiado a: {selection}")
+        self.add_log(f"🌍 Language changed to: {selection}")
         
         # Actualizar el recorder con el nuevo idioma
         if self.recorder:
             self.recorder.set_language(language_code)
             
+    def on_model_change(self, selection):
+        """Callback cuando cambia el modelo seleccionado"""
+        model_info = self.model_options[selection]
+        model_name = model_info["model"]
+        
+        self.add_log(f"🤖 Model changed to: {selection}")
+        self.add_log(f"📊 Speed: {model_info['speed']} | Accuracy: {model_info['accuracy']}")
+        
+        # Verificar si el modelo está descargado
+        if self.is_model_downloaded(model_name):
+            self.add_log(f"✅ Model '{model_name}' is already downloaded")
+            self.load_new_model(model_name)
+        else:
+            self.add_log(f"⬇️ Downloading model '{model_name}' ({model_info['size']})...")
+            self.download_and_load_model(model_name, model_info)
+    
+    def is_model_downloaded(self, model_name):
+        """Verificar si un modelo está descargado"""
+        try:
+            # Verificar en el directorio de cache de whisper
+            cache_dir = os.path.expanduser("~/.cache/whisper")
+            if not os.path.exists(cache_dir):
+                return False
+                
+            # Buscar archivos del modelo en cache
+            for file in os.listdir(cache_dir):
+                if model_name in file and file.endswith('.pt'):
+                    return True
+            return False
+        except:
+            return False
+    
+    def download_and_load_model(self, model_name, model_info):
+        """Descargar y cargar modelo en hilo separado"""
+        def download_thread():
+            try:
+                self.root.after(0, lambda: self.update_status(f"⬇️ Downloading {model_name}..."))
+                
+                # Descargar modelo (Whisper lo hace automáticamente)
+                import whisper
+                new_model = whisper.load_model(model_name, device="cpu")
+                
+                # Actualizar recorder con nuevo modelo
+                if self.recorder:
+                    self.recorder.whisper_model = new_model
+                    self.recorder.set_model(model_name)
+                    self.root.after(0, lambda: self.add_log(f"🚀 Model '{model_name}' loaded successfully"))
+                
+                self.root.after(0, lambda: self.update_status("🟢 Ready"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.add_log(f"❌ Error downloading model '{model_name}': {e}", "ERROR"))
+                self.root.after(0, lambda: self.update_status("❌ Error"))
+                
+                # Revertir selección al modelo anterior
+                self.root.after(0, lambda: self.model_dropdown.set("🚀 Turbo - Optimized (805MB)"))
+        
+        threading.Thread(target=download_thread, daemon=True).start()
+    
+    def load_new_model(self, model_name):
+        """Cargar modelo ya descargado"""
+        def load_thread():
+            try:
+                self.root.after(0, lambda: self.update_status(f"🔄 Loading {model_name}..."))
+                
+                import whisper
+                new_model = whisper.load_model(model_name, device="cpu")
+                
+                if self.recorder:
+                    self.recorder.whisper_model = new_model
+                    self.recorder.set_model(model_name)
+                    self.root.after(0, lambda: self.add_log(f"🚀 Model '{model_name}' loaded successfully"))
+                
+                self.root.after(0, lambda: self.update_status("🟢 Ready"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.add_log(f"❌ Error loading model '{model_name}': {e}", "ERROR"))
+                self.root.after(0, lambda: self.update_status("❌ Error"))
+    
+        threading.Thread(target=load_thread, daemon=True).start()
+    
+    def get_selected_model(self):
+        """Obtener el modelo seleccionado"""
+        current_selection = self.model_dropdown.get()
+        return self.model_options[current_selection]["model"]
+    
     def get_selected_language(self):
         """Obtener el código del idioma seleccionado"""
         current_selection = self.language_dropdown.get()
@@ -246,13 +439,13 @@ class SimpleVoiceGUI:
     def setup_recording_controls(self, parent):
         """Configurar controles de grabación"""
         controls_frame = ctk.CTkFrame(parent, corner_radius=10)
-        controls_frame.grid(row=1, column=0, sticky="ew", pady=(0, 20))
+        controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
         controls_frame.grid_columnconfigure(0, weight=1)
         
         # Botón principal de grabación
         self.record_button = ctk.CTkButton(
             controls_frame,
-            text="🎙️ Iniciar Grabación",
+            text="🎙️ Start Recording",
             font=ctk.CTkFont(size=18, weight="bold"),
             height=60,
             command=self.toggle_recording
@@ -262,7 +455,7 @@ class SimpleVoiceGUI:
         # Instrucción
         instruction_label = ctk.CTkLabel(
             controls_frame,
-            text="Presiona F12 o el botón para grabar. Habla claramente y presiona nuevamente para transcribir.",
+            text="Press F12 or the button to record. Speak clearly and press again to transcribe.",
             font=ctk.CTkFont(size=12),
             text_color=("gray50", "gray50"),
             wraplength=600
@@ -272,7 +465,7 @@ class SimpleVoiceGUI:
     def setup_transcription_section(self, parent):
         """Configurar sección de transcripción"""
         trans_frame = ctk.CTkFrame(parent, corner_radius=10)
-        trans_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 20))
+        trans_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 20))
         trans_frame.grid_columnconfigure(0, weight=1)
         trans_frame.grid_rowconfigure(1, weight=1)
         
@@ -283,7 +476,7 @@ class SimpleVoiceGUI:
         
         trans_title = ctk.CTkLabel(
             trans_header,
-            text="Transcripción",
+            text="Transcription",
             font=ctk.CTkFont(size=16, weight="bold")
         )
         trans_title.grid(row=0, column=0, sticky="w")
@@ -291,7 +484,7 @@ class SimpleVoiceGUI:
         # Botón copiar
         self.copy_button = ctk.CTkButton(
             trans_header,
-            text="📋 Copiar",
+            text="📋 Copy",
             width=80,
             height=28,
             command=self.copy_transcription
@@ -307,12 +500,12 @@ class SimpleVoiceGUI:
         self.transcription_text.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 15))
         
         # Placeholder text
-        self.transcription_text.insert("1.0", "Las transcripciones aparecerán aquí...")
+        self.transcription_text.insert("1.0", "Transcriptions will appear here...")
         
     def setup_logs_section(self, parent):
         """Configurar sección de logs"""
         logs_frame = ctk.CTkFrame(parent, corner_radius=10)
-        logs_frame.grid(row=3, column=0, sticky="ew", pady=(0, 20))
+        logs_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
         logs_frame.grid_columnconfigure(0, weight=1)
         
         # Header de logs
@@ -322,7 +515,7 @@ class SimpleVoiceGUI:
         
         logs_title = ctk.CTkLabel(
             logs_header,
-            text="Logs del Sistema",
+            text="System Logs",
             font=ctk.CTkFont(size=16, weight="bold")
         )
         logs_title.grid(row=0, column=0, sticky="w")
@@ -333,7 +526,7 @@ class SimpleVoiceGUI:
         
         self.logs_toggle = ctk.CTkButton(
             logs_buttons,
-            text="👁️ Mostrar",
+            text="👁️ Show",
             width=80,
             height=28,
             command=self.toggle_logs
@@ -342,7 +535,7 @@ class SimpleVoiceGUI:
         
         self.view_logs_button = ctk.CTkButton(
             logs_buttons,
-            text="📄 Archivo",
+            text="📄 File",
             width=80,
             height=28,
             command=self.open_log_file
@@ -391,15 +584,17 @@ class SimpleVoiceGUI:
         import threading
         try:
             # Crear icono para el tray
-            def create_tray_icon_static(is_recording=False):
+            def create_tray_icon_static(state='idle'):
                 size = 64
                 image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
                 draw = ImageDraw.Draw(image)
                 
-                if is_recording:
-                    color = (220, 50, 50, 255)
-                else:
-                    color = (50, 150, 220, 255)
+                if state == 'recording':
+                    color = (220, 50, 50, 255)  # Rojo
+                elif state == 'processing':
+                    color = (138, 43, 226, 255) # Morado
+                else:  # 'idle'
+                    color = (50, 150, 220, 255)  # Azul
                     
                 margin = 8
                 draw.ellipse([margin, margin, size-margin, size-margin], fill=color)
@@ -415,7 +610,7 @@ class SimpleVoiceGUI:
                 return image
             
             # Estado del tray
-            is_recording = False
+            current_state = 'idle'
             icon = None
             
             def on_record_click(icon_obj, item):
@@ -429,37 +624,45 @@ class SimpleVoiceGUI:
                 icon_obj.stop()
             
             def create_menu():
-                record_text = "⏹️ Detener Grabación" if is_recording else "🎙️ Iniciar Grabación"
+                is_recording = current_state == 'recording'
+                is_processing = current_state == 'processing'
+                
+                if is_recording:
+                    record_text = "⏹️ Stop Recording"
+                elif is_processing:
+                    record_text = "⏳ Processing..."
+                else:
+                    record_text = "🎙️ Start Recording"
+
                 return pystray.Menu(
-                    pystray.MenuItem(record_text, on_record_click),
-                    pystray.MenuItem("⚙️ Opciones", on_options_click),
+                    pystray.MenuItem(record_text, on_record_click, enabled=not is_processing),
+                    pystray.MenuItem("⚙️ Options", on_options_click),
                     pystray.Menu.SEPARATOR,
-                    pystray.MenuItem("❌ Salir", on_quit_click)
+                    pystray.MenuItem("❌ Quit", on_quit_click)
                 )
             
             def update_tray_state():
                 """Actualizar estado del tray basado en mensajes del proceso principal"""
-                nonlocal is_recording, icon
+                nonlocal current_state, icon
                 try:
                     while not status_queue.empty():
                         status_update = status_queue.get_nowait()
-                        if status_update[0] == 'recording_state':
-                            new_recording_state = status_update[1]
-                            if new_recording_state != is_recording:
-                                is_recording = new_recording_state
-                                # Actualizar icono
-                                icon.icon = create_tray_icon_static(is_recording)
-                                # Actualizar menú
+                        if status_update[0] == 'state':
+                            new_state = status_update[1]
+                            if new_state != current_state:
+                                current_state = new_state
+                                # Actualizar icono y menú
+                                icon.icon = create_tray_icon_static(current_state)
                                 icon.menu = create_menu()
                 except:
                     pass
             
             # Crear y ejecutar icono
-            icon_image = create_tray_icon_static(False)
+            icon_image = create_tray_icon_static('idle')
             icon = pystray.Icon(
                 "SimpleVoice",
                 icon_image,
-                "SimpleVoice - Transcriptor de Voz",
+                "SimpleVoice - Voice Transcriptor",
                 create_menu()
             )
             
@@ -578,12 +781,18 @@ class SimpleVoiceGUI:
         """Inicializar grabador en hilo separado"""
         def init_thread():
             try:
-                # Obtener idioma seleccionado
+                # Obtener configuración seleccionada
                 selected_language = self.get_selected_language()
-                self.recorder = VoiceRecorder(log_callback=self.add_log, language=selected_language)
-                self.root.after(0, lambda: self.update_status("🟢 Listo"))
+                selected_model = self.get_selected_model()
+                
+                self.recorder = VoiceRecorder(
+                    log_callback=self.add_log, 
+                    language=selected_language,
+                    model=selected_model
+                )
+                self.root.after(0, lambda: self.update_status("🟢 Ready"))
             except Exception as e:
-                self.root.after(0, lambda: self.add_log(f"❌ Error inicializando: {e}"))
+                self.root.after(0, lambda: self.add_log(f"❌ Initialization error: {e}"))
                 self.root.after(0, lambda: self.update_status("❌ Error"))
         
         threading.Thread(target=init_thread, daemon=True).start()
@@ -591,37 +800,38 @@ class SimpleVoiceGUI:
     def toggle_recording(self):
         """Alternar grabación"""
         if not self.recorder:
-            self.add_log("❌ Grabador no inicializado")
+            self.add_log("❌ Recorder not initialized")
             return
             
         if self.recorder.is_recording:
             # Parar grabación
             self.is_recording = False
-            self.record_button.configure(text="⏳ Procesando...", state="disabled")
-            self.update_status("⏳ Procesando...")
-            self.update_tray_state()
+            self.record_button.configure(text="⏳ Processing...", state="disabled")
+            self.update_status("⏳ Processing...")
+            self.update_tray_state('processing')
             
             def stop_thread():
                 transcript = self.recorder.stop_recording()
                 if transcript:
                     self.root.after(0, lambda: self.show_transcription(transcript))
-                self.root.after(0, lambda: self.record_button.configure(text="🎙️ Iniciar Grabación", state="normal"))
-                self.root.after(0, lambda: self.update_status("🟢 Listo"))
+                self.root.after(0, lambda: self.record_button.configure(text="🎙️ Start Recording", state="normal"))
+                self.root.after(0, lambda: self.update_status("🟢 Ready"))
+                self.root.after(0, self.update_tray_state, 'idle')
                 
             threading.Thread(target=stop_thread, daemon=True).start()
         else:
             # Iniciar grabación
             if self.recorder.start_recording():
                 self.is_recording = True
-                self.record_button.configure(text="⏹️ Detener Grabación")
-                self.update_status("🔴 Grabando...")
-                self.update_tray_state()
+                self.record_button.configure(text="⏹️ Stop Recording")
+                self.update_status("🔴 Recording...")
+                self.update_tray_state('recording')
                 
-    def update_tray_state(self):
+    def update_tray_state(self, state: str):
         """Enviar actualización de estado al process del tray"""
         try:
             if self.tray_process and self.tray_process.is_alive():
-                self.tray_status_queue.put(('recording_state', self.is_recording))
+                self.tray_status_queue.put(('state', state))
         except Exception as e:
             print(f"⚠️ Error actualizando estado tray: {e}")
                 
@@ -640,21 +850,21 @@ class SimpleVoiceGUI:
             try:
                 import pyperclip
                 pyperclip.copy(text)
-                self.add_log("📋 Texto copiado al portapapeles")
+                self.add_log("📋 Text copied to clipboard")
             except:
-                self.add_log("❌ Error copiando al portapapeles")
+                self.add_log("❌ Error copying to clipboard")
         else:
-            self.add_log("⚠️ No hay texto para copiar")
+            self.add_log("⚠️ No text to copy")
             
     def toggle_logs(self):
         """Mostrar/ocultar logs"""
         if self.logs_visible:
             self.logs_container.grid_remove()
-            self.logs_toggle.configure(text="👁️ Mostrar")
+            self.logs_toggle.configure(text="👁️ Show")
             self.logs_visible = False
         else:
             self.logs_container.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 15))
-            self.logs_toggle.configure(text="👁️ Ocultar")
+            self.logs_toggle.configure(text="👁️ Hide")
             self.logs_visible = True
             
     def add_log(self, message: str):
@@ -678,7 +888,7 @@ class SimpleVoiceGUI:
             
     def update_status(self, status: str):
         """Actualizar estado"""
-        self.status_label.configure(text=f"Estado: {status}")
+        self.status_label.configure(text=f"Status: {status}")
         
     def open_log_file(self):
         """Abrir archivo de logs"""
@@ -693,103 +903,10 @@ class SimpleVoiceGUI:
                     else:  # Windows
                         os.system(f"start '{log_file}'")
                 except:
-                    messagebox.showinfo("Archivo de Logs", f"Archivo: {log_file}")
+                    messagebox.showinfo("Log File", f"File: {log_file}")
             else:
-                messagebox.showwarning("Logs", "No se encontró el archivo de logs")
+                messagebox.showwarning("Logs", "Log file not found")
                 
-    def show_settings(self):
-        """Mostrar configuraciones avanzadas"""
-        settings_window = ctk.CTkToplevel(self.root)
-        settings_window.title("Configuraciones Avanzadas")
-        settings_window.geometry("500x400")
-        settings_window.transient(self.root)
-        settings_window.grab_set()
-        
-        # Título
-        title = ctk.CTkLabel(
-            settings_window,
-            text="Configuraciones Avanzadas",
-            font=ctk.CTkFont(size=18, weight="bold")
-        )
-        title.pack(pady=20)
-        
-        # Frame principal
-        content_frame = ctk.CTkFrame(settings_window)
-        content_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        
-        # Información de archivos
-        files_label = ctk.CTkLabel(
-            content_frame,
-            text="📁 Ubicaciones de Archivos",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        files_label.pack(pady=(20, 10), anchor="w", padx=20)
-        
-        # Logs
-        logs_info = ctk.CTkLabel(
-            content_frame,
-            text=f"Logs: ~/SimpleVoice/logs/",
-            font=ctk.CTkFont(size=12)
-        )
-        logs_info.pack(anchor="w", padx=20)
-        
-        # Información técnica
-        tech_label = ctk.CTkLabel(
-            content_frame,
-            text="🔧 Información Técnica",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        tech_label.pack(pady=(20, 10), anchor="w", padx=20)
-        
-        tech_info = ctk.CTkLabel(
-            content_frame,
-            text="""• Motor: OpenAI Whisper
-• Versión del modelo: Turbo (1.6GB)
-• Formato de audio: WAV 16kHz mono
-• Hotkeys: Globales (funcionan desde cualquier app)
-• Logs automáticos: Activados""",
-            font=ctk.CTkFont(size=12),
-            justify="left"
-        )
-        tech_info.pack(anchor="w", padx=20, pady=(0, 20))
-        
-        # Botón cerrar
-        close_button = ctk.CTkButton(
-            content_frame,
-            text="Cerrar",
-            command=settings_window.destroy
-        )
-        close_button.pack(pady=20)
-        
-    def show_help(self):
-        """Mostrar ayuda"""
-        help_text = """
-        🎙️ SimpleVoice - Transcriptor de Voz
-        
-        📖 Cómo usar:
-        1. Presiona F12 o el botón "GRABAR" para iniciar
-        2. Habla claramente al micrófono
-        3. Presiona F12 nuevamente o "PARAR" para terminar
-        4. El texto se transcribe automáticamente
-        5. Se copia al portapapeles automáticamente
-        
-        🔧 Características:
-        • Hotkey global F12
-        • Transcripción con IA (Whisper)
-        • Copia automática al portapapeles
-        • Logs detallados del sistema
-        • Interfaz moderna y amigable
-        
-        📝 Notas:
-        • Requiere micrófono funcional
-        • Optimizado para español
-        • Los logs se guardan en ~/SimpleVoice/logs/
-        """
-        
-        messagebox.showinfo("❓ Ayuda", help_text)
-        
-
-        
     def run(self):
         """Ejecutar la aplicación"""
         # Mostrar ventana al inicio
@@ -802,8 +919,8 @@ def main():
         app = SimpleVoiceGUI()
         app.run()
     except Exception as e:
-        print(f"❌ Error ejecutando GUI: {e}")
-        messagebox.showerror("Error", f"Error ejecutando SimpleVoice:\n{e}")
+        print(f"❌ Error running GUI: {e}")
+        messagebox.showerror("Error", f"Error running SimpleVoice:\n{e}")
 
 if __name__ == "__main__":
     # Protección necesaria para multiprocessing en macOS
