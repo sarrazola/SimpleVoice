@@ -281,7 +281,7 @@ class VoiceRecorder:
             return None
 
     def _paste_from_clipboard(self):
-        """Simulate pasting from clipboard using pyautogui"""
+        """Simulate pasting from clipboard using pyautogui with a more robust method."""
         try:
             self.log("📋 Pasting text automatically...")
             
@@ -292,8 +292,11 @@ class VoiceRecorder:
             self.log(f"💻 Detected OS: {os_platform}")
 
             if os_platform == "darwin":  # macOS
-                self.log("macOS detected, using 'command' + 'v'")
-                pyautogui.hotkey('command', 'v')
+                self.log("macOS detected, using low-level key events for reliability.")
+                pyautogui.keyDown('command')
+                time.sleep(0.1)  # Ensure modifier key is registered
+                pyautogui.press('v')
+                pyautogui.keyUp('command')
             else:  # Windows or Linux
                 self.log("Windows/Linux detected, using 'ctrl' + 'v'")
                 pyautogui.hotkey('ctrl', 'v')
