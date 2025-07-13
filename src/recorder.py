@@ -74,28 +74,20 @@ class VoiceRecorder:
         self.log("🚀 SimpleVoice ready to use!")
         
     def setup_logging(self):
-        """Configure logging to file and callback"""
-        logs_dir = Path.home() / "SimpleVoice" / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        
-        log_file = logs_dir / f"simplevoice_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        
-        # Configure file logging
+        """Configure logging to only use a stream handler (no file)."""
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler(log_file),
                 logging.StreamHandler(sys.stdout)
             ]
         )
         
         self.logger = logging.getLogger(__name__)
-        self.log_file_path = log_file
         
     def log(self, message: str, level: str = "INFO"):
-        """Send log both to file and GUI callback"""
-        # Log to file
+        """Send log both to stdout and GUI callback"""
+        # Log to stdout
         if level == "ERROR":
             self.logger.error(message)
         elif level == "WARNING":
@@ -336,8 +328,4 @@ class VoiceRecorder:
                 
             self.log("🧹 Resources cleaned")
         except Exception as e:
-            self.log(f"❌ Error cleaning resources: {e}", "ERROR")
-    
-    def get_log_file_path(self):
-        """Get log file path"""
-        return self.log_file_path 
+            self.log(f"❌ Error cleaning resources: {e}", "ERROR") 

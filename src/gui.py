@@ -557,19 +557,6 @@ class SimpleVoiceGUI:
         )
         logs_title.grid(row=0, column=0, sticky="w")
         
-        # Botones de logs
-        logs_buttons = ctk.CTkFrame(logs_header, corner_radius=0, fg_color="transparent")
-        logs_buttons.grid(row=0, column=1, sticky="e")
-        
-        self.view_logs_button = ctk.CTkButton(
-            logs_buttons,
-            text="📄 File",
-            width=80,
-            height=28,
-            command=self.open_log_file
-        )
-        self.view_logs_button.grid(row=0, column=0)
-        
         # Área de logs (siempre visible)
         self.logs_container = ctk.CTkFrame(logs_frame, corner_radius=8)
         self.logs_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(15, 15))
@@ -906,23 +893,6 @@ class SimpleVoiceGUI:
         """Actualizar estado"""
         self.status_label.configure(text=f"Status: {status}")
         
-    def open_log_file(self):
-        """Abrir archivo de logs"""
-        if self.recorder:
-            log_file = self.recorder.get_log_file_path()
-            if log_file and os.path.exists(log_file):
-                try:
-                    if sys.platform == "darwin":  # macOS
-                        os.system(f"open '{log_file}'")
-                    elif sys.platform == "linux":  # Linux
-                        os.system(f"xdg-open '{log_file}'")
-                    else:  # Windows
-                        os.system(f"start '{log_file}'")
-                except:
-                    messagebox.showinfo("Log File", f"File: {log_file}")
-            else:
-                messagebox.showwarning("Logs", "Log file not found")
-                
     def run(self):
         """Ejecutar la aplicación"""
         # Mostrar ventana al inicio
