@@ -307,7 +307,18 @@ class SimpleVoiceGUI:
             state="readonly"
         )
         self.model_dropdown.set("🚀 Turbo - Optimized (805MB)")  # Valor por defecto
-        self.model_dropdown.grid(row=4, column=0, pady=(0, 20), sticky="w", padx=20)
+        self.model_dropdown.grid(row=4, column=0, pady=(0, 10), sticky="w", padx=20)
+        
+        # Label para mostrar información del modelo
+        self.model_info_label = ctk.CTkLabel(
+            settings_frame,
+            text="",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray50", "gray50"),
+            justify="left",
+            wraplength=350
+        )
+        self.model_info_label.grid(row=5, column=0, pady=(0, 20), padx=20, sticky="w")
         
         # Idioma
         language_label = ctk.CTkLabel(
@@ -315,7 +326,7 @@ class SimpleVoiceGUI:
             text="Language:",
             font=ctk.CTkFont(size=12)
         )
-        language_label.grid(row=5, column=0, pady=(5, 0), sticky="w", padx=20)
+        language_label.grid(row=6, column=0, pady=(5, 0), sticky="w", padx=20)
         
         # Dropdown de idiomas
         self.language_options = {
@@ -346,7 +357,10 @@ class SimpleVoiceGUI:
             state="readonly"
         )
         self.language_dropdown.set("🌐 Auto-detect")  # Valor por defecto
-        self.language_dropdown.grid(row=6, column=0, pady=(0, 20), sticky="w", padx=20)
+        self.language_dropdown.grid(row=7, column=0, pady=(0, 20), sticky="w", padx=20)
+        
+        # Mostrar info del modelo por defecto al inicio
+        self._update_model_info(self.model_dropdown.get())
         
     def on_language_change(self, selection):
         """Callback cuando cambia el idioma seleccionado"""
@@ -359,11 +373,12 @@ class SimpleVoiceGUI:
             
     def on_model_change(self, selection):
         """Callback cuando cambia el modelo seleccionado"""
+        self._update_model_info(selection)
+        
         model_info = self.model_options[selection]
         model_name = model_info["model"]
         
         self.add_log(f"🤖 Model changed to: {selection}")
-        self.add_log(f"📊 Speed: {model_info['speed']} | Accuracy: {model_info['accuracy']}")
         
         # Verificar si el modelo está descargado
         if self.is_model_downloaded(model_name):
@@ -372,6 +387,15 @@ class SimpleVoiceGUI:
         else:
             self.add_log(f"⬇️ Downloading model '{model_name}' ({model_info['size']})...")
             self.download_and_load_model(model_name, model_info)
+
+    def _update_model_info(self, selection):
+        """Actualizar el label con la info del modelo seleccionado"""
+        model_info = self.model_options[selection]
+        info_text = (
+            f"{model_info['description']}\n"
+            f"Speed: {model_info['speed']} | Accuracy: {model_info['accuracy']}"
+        )
+        self.model_info_label.configure(text=info_text)
     
     def is_model_downloaded(self, model_name):
         """Verificar si un modelo está descargado"""
