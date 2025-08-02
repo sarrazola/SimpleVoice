@@ -211,24 +211,39 @@ class SimpleVoiceGUI:
         self.help_text_template = """
         🎙️ SimpleVoice - Voice Transcriptor
         
+        🌟 Open Source Alternative to Commercial Voice-to-Text Software
+        This project is completely FREE and open source!
+        
         📖 How to use:
-        1. Press {hotkey} or the "RECORD" button to start
+        1. Press {hotkey} or the "Start Recording" button to start
         2. Speak clearly into the microphone
-        3. Press {hotkey} again or "STOP" to finish
+        3. Press {hotkey} again or "Stop" to finish
         4. The text is automatically transcribed
         5. It's automatically copied to clipboard
         
         🔧 Features:
         • Global {hotkey} hotkey (configurable)
-        • AI transcription (Whisper)
+        • AI transcription with OpenAI Whisper
         • Auto-copy to clipboard
+        • Multi-language support with auto-detection
+        • Multiple AI models (Turbo, Base, Small, etc.)
         • Detailed system logs
         • Modern and friendly interface
+        • 100% private - works offline
         
         📝 Notes:
         • Requires functional microphone
         • Optimized for multiple languages
         • Logs are saved in ~/SimpleVoice/logs/
+        • Give microphone permissions to Terminal/Python
+        
+        🌐 Open Source Project:
+        • GitHub: https://github.com/sarrazola/SimpleVoice/
+        • License: MIT (most permissive open source license)
+        • Free to use, modify and distribute
+        • Report bugs or contribute features on GitHub
+        
+        💡 Alternative to paid solutions
         """
         
         self.help_label = ctk.CTkLabel(
