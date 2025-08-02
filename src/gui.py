@@ -10,6 +10,7 @@ import customtkinter as ctk
 import threading
 import sys
 import os
+import logging
 from pathlib import Path
 from typing import Optional
 import multiprocessing
@@ -36,6 +37,32 @@ class SimpleVoiceGUI:
         self.tray_status_queue = multiprocessing.Queue()
         self.tray_process = None
         
+        # Configurar opciones de teclas disponibles (macOS-friendly)
+        self.hotkey_options = {
+            "F12": "f12",
+            "F11": "f11",
+            "F10": "f10",
+            "F9": "f9",
+            "F8": "f8",
+            "F7": "f7",
+            "F6": "f6",
+            "F5": "f5",
+            "F4": "f4",
+            "F3": "f3",
+            "F2": "f2",
+            "F1": "f1",
+            "Option+S": "alt+s",  # 'alt' es la tecla Option en pynput
+            "Option+R": "alt+r",
+            "Cmd+Shift+S": "cmd+shift+s",
+            "Cmd+Shift+R": "cmd+shift+r",
+            "Ctrl+Shift+S": "ctrl+shift+s",
+            "Ctrl+Option+S": "ctrl+alt+s",
+        }
+        
+        # Tecla seleccionada por defecto
+        self.selected_hotkey = "F12"
+        
+        self._setup_logging()
         self.setup_window()
         self.setup_widgets()
         self.setup_hotkeys()
@@ -83,7 +110,7 @@ class SimpleVoiceGUI:
         """Configurar el menú lateral"""
         sidebar_frame = ctk.CTkFrame(self.root, width=120, corner_radius=0)
         sidebar_frame.grid(row=0, column=0, sticky="nsw")
-        sidebar_frame.grid_rowconfigure(4, weight=1)
+        sidebar_frame.grid_rowconfigure(5, weight=1)
 
         logo_label = ctk.CTkLabel(sidebar_frame, text="SimpleVoice", font=ctk.CTkFont(size=20, weight="bold"))
         logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -97,12 +124,16 @@ class SimpleVoiceGUI:
         help_button = ctk.CTkButton(sidebar_frame, text="❓ Help", command=lambda: self.show_view("help"))
         help_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
+        logs_button = ctk.CTkButton(sidebar_frame, text="📝 Logs", command=lambda: self.show_view("logs"))
+        logs_button.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+
     def show_view(self, view_name):
         """Mostrar la vista seleccionada (home o help)"""
         # Ocultar todos los frames de contenido
         self.home_frame.grid_remove()
         self.help_frame.grid_remove()
         self.settings_frame.grid_remove()
+        self.logs_frame.grid_remove()
 
         # Mostrar el frame seleccionado
         if view_name == "home":
@@ -111,6 +142,8 @@ class SimpleVoiceGUI:
             self.help_frame.grid()
         elif view_name == "settings":
             self.settings_frame.grid()
+        elif view_name == "logs":
+            self.logs_frame.grid()
         
     def setup_header(self, parent):
         """Configurar header con título y estado"""
@@ -160,27 +193,33 @@ class SimpleVoiceGUI:
         self.settings_frame.grid_columnconfigure(0, weight=1)
         self.settings_frame.grid_rowconfigure(0, weight=0)
 
+        # Frame para la vista "Logs"
+        self.logs_frame = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        self.logs_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=0)
+        self.logs_frame.grid_columnconfigure(0, weight=1)
+        self.logs_frame.grid_rowconfigure(0, weight=1)
+
         # Contenido de las vistas
         self.setup_settings_section(self.settings_frame)
         self.setup_recording_controls(self.home_frame)
         self.setup_transcription_section(self.home_frame)
-        self.setup_logs_section(self.home_frame)
+        self.setup_logs_section(self.logs_frame)
         self.setup_help_content(self.help_frame)
         
     def setup_help_content(self, parent):
         """Configurar el contenido de la sección de ayuda"""
-        help_text = """
+        self.help_text_template = """
         🎙️ SimpleVoice - Voice Transcriptor
         
         📖 How to use:
-        1. Press F12 or the "RECORD" button to start
+        1. Press {hotkey} or the "RECORD" button to start
         2. Speak clearly into the microphone
-        3. Press F12 again or "STOP" to finish
+        3. Press {hotkey} again or "STOP" to finish
         4. The text is automatically transcribed
         5. It's automatically copied to clipboard
         
         🔧 Features:
-        • Global F12 hotkey
+        • Global {hotkey} hotkey (configurable)
         • AI transcription (Whisper)
         • Auto-copy to clipboard
         • Detailed system logs
@@ -192,14 +231,21 @@ class SimpleVoiceGUI:
         • Logs are saved in ~/SimpleVoice/logs/
         """
         
-        help_label = ctk.CTkLabel(
+        self.help_label = ctk.CTkLabel(
             parent,
-            text=help_text,
+            text=self.help_text_template.format(hotkey=self.selected_hotkey),
             font=ctk.CTkFont(size=14),
             justify="left",
             anchor="nw"
         )
-        help_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.help_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+
+    def update_help_text(self):
+        """Actualizar el texto de ayuda con la tecla seleccionada"""
+        if hasattr(self, 'help_label'):
+            self.help_label.configure(
+                text=self.help_text_template.format(hotkey=self.selected_hotkey)
+            )
 
     def setup_settings_section(self, parent):
         """Configurar sección de configuraciones"""
@@ -223,13 +269,17 @@ class SimpleVoiceGUI:
         )
         hotkey_label.grid(row=1, column=0, pady=(5, 0), sticky="w", padx=20)
 
-        self.hotkey_value = ctk.CTkLabel(
+        # Dropdown para seleccionar tecla
+        self.hotkey_dropdown = ctk.CTkComboBox(
             settings_frame,
-            text="F12",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=("blue", "lightblue")
+            values=list(self.hotkey_options.keys()),
+            state="readonly",
+            width=200,
+            font=ctk.CTkFont(size=12),
+            command=self.on_hotkey_change
         )
-        self.hotkey_value.grid(row=2, column=0, pady=(0, 20), sticky="w", padx=20)
+        self.hotkey_dropdown.set(self.selected_hotkey)
+        self.hotkey_dropdown.grid(row=2, column=0, pady=(0, 20), sticky="w", padx=20)
 
         # Modelo
         model_label = ctk.CTkLabel(
@@ -246,35 +296,35 @@ class SimpleVoiceGUI:
                 "size": "39MB",
                 "speed": "⚡⚡⚡⚡⚡",
                 "accuracy": "⭐⭐",
-                "description": "Basic transcription, very fast"
+                "description": "Ultra-fast basic transcription"
             },
             "🏃 Base - Fast (74MB)": {
-                "model": "base", 
+                "model": "base",
                 "size": "74MB",
                 "speed": "⚡⚡⚡⚡",
                 "accuracy": "⭐⭐⭐",
-                "description": "General lightweight usage"
+                "description": "Lightweight general use"
             },
             "⚖️ Small - Balanced (244MB)": {
                 "model": "small",
-                "size": "244MB", 
+                "size": "244MB",
                 "speed": "⚡⚡⚡",
                 "accuracy": "⭐⭐⭐⭐",
-                "description": "Speed/quality balance"
+                "description": "Ideal speed/quality balance"
             },
             "🎯 Medium - Accurate (769MB)": {
                 "model": "medium",
                 "size": "769MB",
-                "speed": "⚡⚡", 
+                "speed": "⚡⚡",
                 "accuracy": "⭐⭐⭐⭐⭐",
-                "description": "High accuracy"
+                "description": "High accuracy for complex audio"
             },
             "👑 Large - Maximum (1.5GB)": {
                 "model": "large",
                 "size": "1.5GB",
                 "speed": "⚡",
-                "accuracy": "⭐⭐⭐⭐⭐", 
-                "description": "Maximum accuracy"
+                "accuracy": "⭐⭐⭐⭐⭐",
+                "description": "Maximum accuracy for critical cases"
             },
             "🚀 Turbo - Optimized (805MB)": {
                 "model": "turbo",
@@ -284,32 +334,41 @@ class SimpleVoiceGUI:
                 "description": "Fast and accurate (recommended)"
             }
         }
-        
+
         self.model_dropdown = ctk.CTkComboBox(
             settings_frame,
             values=list(self.model_options.keys()),
-            font=ctk.CTkFont(size=11),
-            width=220,
-            height=28,
-            command=self.on_model_change,
-            state="readonly"
+            state="readonly",
+            width=400,
+            font=ctk.CTkFont(size=12),
+            command=self.on_model_change
         )
-        self.model_dropdown.set("🚀 Turbo - Optimized (805MB)")  # Valor por defecto
-        self.model_dropdown.grid(row=4, column=0, pady=(0, 20), sticky="w", padx=20)
-        
+        self.model_dropdown.set("🚀 Turbo - Optimized (805MB)")
+        self.model_dropdown.grid(row=4, column=0, pady=(0, 5), sticky="w", padx=20)
+
+        # Información del modelo seleccionado
+        self.model_info_label = ctk.CTkLabel(
+            settings_frame,
+            text="Fast and accurate (recommended)\nSpeed: ⚡⚡⚡ | Accuracy: ⭐⭐⭐⭐⭐",
+            font=ctk.CTkFont(size=10),
+            text_color=("gray50", "gray50"),
+            justify="left"
+        )
+        self.model_info_label.grid(row=5, column=0, pady=(0, 20), sticky="w", padx=20)
+
         # Idioma
         language_label = ctk.CTkLabel(
             settings_frame,
             text="Language:",
             font=ctk.CTkFont(size=12)
         )
-        language_label.grid(row=5, column=0, pady=(5, 0), sticky="w", padx=20)
-        
+        language_label.grid(row=6, column=0, pady=(5, 0), sticky="w", padx=20)
+
         # Dropdown de idiomas
         self.language_options = {
             "🌐 Auto-detect": None,
-            "🇺🇸 English": "en",
             "🇪🇸 Spanish": "es",
+            "🇺🇸 English": "en",
             "🇫🇷 French": "fr",
             "🇩🇪 German": "de",
             "🇮🇹 Italian": "it",
@@ -323,35 +382,61 @@ class SimpleVoiceGUI:
             "🇳🇴 Norwegian": "no",
             "🇩🇰 Danish": "da"
         }
-        
+
         self.language_dropdown = ctk.CTkComboBox(
             settings_frame,
             values=list(self.language_options.keys()),
+            state="readonly",
+            width=200,
             font=ctk.CTkFont(size=12),
-            width=160,
-            height=28,
-            command=self.on_language_change,
-            state="readonly"
+            command=self.on_language_change
         )
-        self.language_dropdown.set("🌐 Auto-detect")  # Valor por defecto
-        self.language_dropdown.grid(row=6, column=0, pady=(0, 20), sticky="w", padx=20)
+        self.language_dropdown.set("🌐 Auto-detect")
+        self.language_dropdown.grid(row=7, column=0, pady=(0, 20), sticky="w", padx=20)
+
+    def on_hotkey_change(self, selection):
+        """Callback cuando se cambia la tecla seleccionada"""
+        self.selected_hotkey = selection
+        self.add_log(f"🎹 Hotkey changed to: {selection}")
         
+        # Ya no se necesita reiniciar el listener. El listener existente
+        # leerá el nuevo valor de `self.selected_hotkey` dinámicamente.
+        
+        # Actualizar instrucciones en la interfaz
+        self.update_recording_instructions()
+        
+        # Actualizar texto de ayuda
+        self.update_help_text()
+
+    def _setup_logging(self):
+        """Configura el logging para la GUI para que también imprima en la consola."""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+
     def on_language_change(self, selection):
         """Callback cuando cambia el idioma seleccionado"""
-        language_code = self.language_options[selection]
-        self.add_log(f"🌍 Language changed to: {selection}")
-        
-        # Actualizar el recorder con el nuevo idioma
-        if self.recorder:
+        language_code = self.language_options.get(selection)
+        if hasattr(self, 'recorder') and self.recorder:
             self.recorder.set_language(language_code)
-            
+            lang_text = "🌐 Auto-detect" if language_code is None else f"🌍 {language_code.upper()}"
+            self.add_log(f"🗣️  Language changed to: {lang_text}")
+        else:
+            self.add_log("⚠️  Recorder not initialized yet")
+
     def on_model_change(self, selection):
         """Callback cuando cambia el modelo seleccionado"""
+        self._update_model_info(selection)
+        
         model_info = self.model_options[selection]
         model_name = model_info["model"]
         
         self.add_log(f"🤖 Model changed to: {selection}")
-        self.add_log(f"📊 Speed: {model_info['speed']} | Accuracy: {model_info['accuracy']}")
         
         # Verificar si el modelo está descargado
         if self.is_model_downloaded(model_name):
@@ -360,6 +445,15 @@ class SimpleVoiceGUI:
         else:
             self.add_log(f"⬇️ Downloading model '{model_name}' ({model_info['size']})...")
             self.download_and_load_model(model_name, model_info)
+
+    def _update_model_info(self, selection):
+        """Actualizar el label con la info del modelo seleccionado"""
+        model_info = self.model_options[selection]
+        info_text = (
+            f"{model_info['description']}\n"
+            f"Speed: {model_info['speed']} | Accuracy: {model_info['accuracy']}"
+        )
+        self.model_info_label.configure(text=info_text)
     
     def is_model_downloaded(self, model_name):
         """Verificar si un modelo está descargado"""
@@ -439,9 +533,9 @@ class SimpleVoiceGUI:
     def setup_recording_controls(self, parent):
         """Configurar controles de grabación"""
         controls_frame = ctk.CTkFrame(parent, corner_radius=10)
-        controls_frame.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+        controls_frame.grid(row=0, column=0, sticky="new", pady=(0, 20))
         controls_frame.grid_columnconfigure(0, weight=1)
-        
+
         # Botón principal de grabación
         self.record_button = ctk.CTkButton(
             controls_frame,
@@ -453,15 +547,22 @@ class SimpleVoiceGUI:
         self.record_button.grid(row=0, column=0, pady=20, padx=20, sticky="ew")
         
         # Instrucción
-        instruction_label = ctk.CTkLabel(
+        self.instruction_label = ctk.CTkLabel(
             controls_frame,
-            text="Press F12 or the button to record. Speak clearly and press again to transcribe.",
+            text=f"Press {self.selected_hotkey} or the button to record. Speak clearly and press again to transcribe.",
             font=ctk.CTkFont(size=12),
             text_color=("gray50", "gray50"),
             wraplength=600
         )
-        instruction_label.grid(row=1, column=0, pady=(0, 20), padx=20)
-        
+        self.instruction_label.grid(row=1, column=0, pady=(0, 20), padx=20)
+
+    def update_recording_instructions(self):
+        """Actualizar las instrucciones de grabación con la tecla seleccionada"""
+        if hasattr(self, 'instruction_label'):
+            self.instruction_label.configure(
+                text=f"Press {self.selected_hotkey} or the button to record. Speak clearly and press again to transcribe."
+            )
+
     def setup_transcription_section(self, parent):
         """Configurar sección de transcripción"""
         trans_frame = ctk.CTkFrame(parent, corner_radius=10)
@@ -476,7 +577,7 @@ class SimpleVoiceGUI:
         
         trans_title = ctk.CTkLabel(
             trans_header,
-            text="Transcription",
+            text="Last transcription",
             font=ctk.CTkFont(size=16, weight="bold")
         )
         trans_title.grid(row=0, column=0, sticky="w")
@@ -505,8 +606,9 @@ class SimpleVoiceGUI:
     def setup_logs_section(self, parent):
         """Configurar sección de logs"""
         logs_frame = ctk.CTkFrame(parent, corner_radius=10)
-        logs_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        logs_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 20))
         logs_frame.grid_columnconfigure(0, weight=1)
+        logs_frame.grid_rowconfigure(1, weight=1)
         
         # Header de logs
         logs_header = ctk.CTkFrame(logs_frame, corner_radius=0, fg_color="transparent")
@@ -520,31 +622,10 @@ class SimpleVoiceGUI:
         )
         logs_title.grid(row=0, column=0, sticky="w")
         
-        # Botones de logs
-        logs_buttons = ctk.CTkFrame(logs_header, corner_radius=0, fg_color="transparent")
-        logs_buttons.grid(row=0, column=1, sticky="e")
-        
-        self.logs_toggle = ctk.CTkButton(
-            logs_buttons,
-            text="👁️ Show",
-            width=80,
-            height=28,
-            command=self.toggle_logs
-        )
-        self.logs_toggle.grid(row=0, column=0, padx=(0, 5))
-        
-        self.view_logs_button = ctk.CTkButton(
-            logs_buttons,
-            text="📄 File",
-            width=80,
-            height=28,
-            command=self.open_log_file
-        )
-        self.view_logs_button.grid(row=0, column=1)
-        
-        # Área de logs (inicialmente oculta)
+        # Área de logs (siempre visible)
         self.logs_container = ctk.CTkFrame(logs_frame, corner_radius=8)
-        self.logs_visible = False
+        self.logs_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(15, 15))
+        self.logs_visible = True
         
         self.logs_text = ctk.CTkTextbox(
             self.logs_container,
@@ -554,8 +635,6 @@ class SimpleVoiceGUI:
         self.logs_text.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
         self.logs_container.grid_columnconfigure(0, weight=1)
         self.logs_container.grid_rowconfigure(0, weight=1)
-        
-
         
     def setup_system_tray(self):
         """Configurar icono del system tray usando multiprocessing para macOS"""
@@ -733,6 +812,13 @@ class SimpleVoiceGUI:
     def quit_application(self):
         """Salir completamente de la aplicación"""
         try:
+            # Detener listener de teclado de forma segura
+            if hasattr(self, 'listener') and self.listener is not None:
+                try:
+                    self.listener.stop()
+                except:
+                    pass
+            
             # Terminar proceso del system tray
             if self.tray_process and self.tray_process.is_alive():
                 self.tray_process.terminate()
@@ -750,33 +836,126 @@ class SimpleVoiceGUI:
             # Limpiar recursos
             if self.recorder:
                 self.recorder.cleanup()
-            if hasattr(self, 'listener'):
-                self.listener.stop()
+                
         except:
             pass
+        
         self.root.quit()
         sys.exit(0)
         
     def setup_hotkeys(self):
-        """Configurar hotkeys globales"""
+        """Configurar hotkeys globales. Solo se debe llamar una vez."""
+        # Prevenir la creación de múltiples listeners
+        if hasattr(self, 'listener') and self.listener and self.listener.is_alive():
+            return
+
         try:
             from pynput import keyboard
             
+            # Inicializar estado de las teclas modificadoras
+            self.pressed_keys = set()
+            
             def on_key_press(key):
                 try:
-                    if key == keyboard.Key.f12:
-                        # Ejecutar en hilo principal de GUI
-                        self.root.after(0, self.toggle_recording)
-                except AttributeError:
+                    # Agregar la tecla al set de teclas presionadas
+                    self.pressed_keys.add(key)
+                    
+                    # Obtener la tecla configurada
+                    hotkey_code = self.hotkey_options.get(self.selected_hotkey, "f12")
+                    
+                    # Manejar teclas individuales (F1-F12)
+                    if hotkey_code.startswith('f') and hotkey_code[1:].isdigit():
+                        expected_key = getattr(keyboard.Key, hotkey_code, None)
+                        if expected_key and key == expected_key:
+                            self.root.after(0, self.toggle_recording)
+                    
+                    # Manejar combinaciones de teclas
+                    elif '+' in hotkey_code:
+                        self.check_combination(hotkey_code)
+                        
+                except (AttributeError, Exception) as e:
+                    # Manejo silencioso de errores para no interrumpir el flujo
+                    pass
+            
+            def on_key_release(key):
+                try:
+                    # Remover la tecla del set de teclas presionadas
+                    self.pressed_keys.discard(key)
+                except:
                     pass
             
             # Iniciar listener en hilo separado
-            self.listener = keyboard.Listener(on_press=on_key_press)
+            self.listener = keyboard.Listener(
+                on_press=on_key_press,
+                on_release=on_key_release,
+                suppress=False
+            )
             self.listener.start()
+            
+            self.add_log(f"🎹 Hotkeys configured: {self.selected_hotkey}")
             
         except ImportError:
             self.add_log("⚠️ No se pudieron configurar hotkeys globales")
+        except Exception as e:
+            self.add_log(f"⚠️ Error setting up hotkeys: {e}")
+    
+    def check_combination(self, hotkey_code):
+        """Verificar si se presionó la combinación de teclas correcta"""
+        try:
+            from pynput import keyboard
             
+            # Mapear combinaciones a teclas
+            parts = hotkey_code.split('+')
+            required_modifiers = []
+            required_key = None
+            
+            for part in parts:
+                part = part.strip().lower()
+                if part == 'ctrl':
+                    required_modifiers.append('ctrl')
+                elif part == 'cmd':
+                    required_modifiers.append('cmd')
+                elif part == 'alt':
+                    required_modifiers.append('alt')
+                elif part == 'shift':
+                    required_modifiers.append('shift')
+                elif len(part) == 1:
+                    required_key = part
+            
+            # Si no hay tecla requerida, no procesar
+            if not required_key:
+                return
+            
+            # Verificar que tenemos todos los modificadores necesarios
+            current_modifiers = []
+            has_required_key = False
+            
+            for pressed_key in self.pressed_keys:
+                if pressed_key in [keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
+                    current_modifiers.append('ctrl')
+                elif pressed_key in [keyboard.Key.cmd_l, keyboard.Key.cmd_r]:
+                    current_modifiers.append('cmd')
+                elif pressed_key in [keyboard.Key.alt_l, keyboard.Key.alt_r]:
+                    current_modifiers.append('alt')
+                elif pressed_key in [keyboard.Key.shift_l, keyboard.Key.shift_r]:
+                    current_modifiers.append('shift')
+                elif hasattr(pressed_key, 'char') and pressed_key.char and pressed_key.char.lower() == required_key:
+                    has_required_key = True
+            
+            # Verificar que tenemos exactamente los modificadores requeridos
+            current_modifiers = list(set(current_modifiers))  # Remove duplicates
+            required_modifiers = list(set(required_modifiers))  # Remove duplicates
+            
+            if set(current_modifiers) == set(required_modifiers) and has_required_key:
+                # Pequeña pausa para evitar activaciones múltiples
+                if not hasattr(self, 'last_combination_time') or time.time() - self.last_combination_time > 0.5:
+                    self.last_combination_time = time.time()
+                    self.root.after(0, self.toggle_recording)
+                
+        except Exception as e:
+            # Manejo silencioso para evitar interrupciones
+            pass
+
     def init_recorder(self):
         """Inicializar grabador en hilo separado"""
         def init_thread():
@@ -785,8 +964,12 @@ class SimpleVoiceGUI:
                 selected_language = self.get_selected_language()
                 selected_model = self.get_selected_model()
                 
+                # Pasar una versión adaptada de `add_log` como callback
+                def recorder_log_callback(message):
+                    self.root.after(0, self.add_log, message, True)
+
                 self.recorder = VoiceRecorder(
-                    log_callback=self.add_log, 
+                    log_callback=recorder_log_callback, 
                     language=selected_language,
                     model=selected_model
                 )
@@ -821,7 +1004,7 @@ class SimpleVoiceGUI:
             threading.Thread(target=stop_thread, daemon=True).start()
         else:
             # Iniciar grabación
-            if self.recorder.start_recording():
+            if self.recorder.start_recording(hotkey=self.selected_hotkey):
                 self.is_recording = True
                 self.record_button.configure(text="⏹️ Stop Recording")
                 self.update_status("🔴 Recording...")
@@ -856,57 +1039,35 @@ class SimpleVoiceGUI:
         else:
             self.add_log("⚠️ No text to copy")
             
-    def toggle_logs(self):
-        """Mostrar/ocultar logs"""
-        if self.logs_visible:
-            self.logs_container.grid_remove()
-            self.logs_toggle.configure(text="👁️ Show")
-            self.logs_visible = False
-        else:
-            self.logs_container.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 15))
-            self.logs_toggle.configure(text="👁️ Hide")
-            self.logs_visible = True
-            
-    def add_log(self, message: str):
-        """Añadir mensaje a los logs"""
+    def add_log(self, message: str, from_recorder: bool = False):
+        """Añadir mensaje a los logs de la GUI. La consola ya es manejada por el logger."""
+        # Evitar que los mensajes del recorder se logueen dos veces en la consola
+        if not from_recorder:
+            self.logger.info(message)
+
         try:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            log_entry = f"[{timestamp}] {message}\n"
-            
-            # Añadir al área de logs
-            self.logs_text.insert(tk.END, log_entry)
-            self.logs_text.see(tk.END)
-            
-            # Mantener solo últimas 100 líneas
-            lines = self.logs_text.get("1.0", tk.END).split("\n")
-            if len(lines) > 100:
-                self.logs_text.delete("1.0", f"{len(lines) - 100}.0")
+            # Añadir al área de logs de la GUI
+            if hasattr(self, 'logs_text') and self.logs_text:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                log_entry = f"[{timestamp}] {message}\n"
+
+                self.logs_text.insert(tk.END, log_entry)
+                self.logs_text.see(tk.END)
                 
+                # Mantener solo últimas 100 líneas
+                lines = self.logs_text.get("1.0", tk.END).split("\n")
+                if len(lines) > 101:
+                    self.logs_text.delete("1.0", f"{len(lines) - 100}.0")
+                    
         except Exception as e:
-            print(f"Error añadiendo log: {e}")
-            
+            # Loguear este error específico a la consola
+            self.logger.error(f"Error añadiendo log a la GUI: {e}")
+
     def update_status(self, status: str):
         """Actualizar estado"""
         self.status_label.configure(text=f"Status: {status}")
         
-    def open_log_file(self):
-        """Abrir archivo de logs"""
-        if self.recorder:
-            log_file = self.recorder.get_log_file_path()
-            if log_file and os.path.exists(log_file):
-                try:
-                    if sys.platform == "darwin":  # macOS
-                        os.system(f"open '{log_file}'")
-                    elif sys.platform == "linux":  # Linux
-                        os.system(f"xdg-open '{log_file}'")
-                    else:  # Windows
-                        os.system(f"start '{log_file}'")
-                except:
-                    messagebox.showinfo("Log File", f"File: {log_file}")
-            else:
-                messagebox.showwarning("Logs", "Log file not found")
-                
     def run(self):
         """Ejecutar la aplicación"""
         # Mostrar ventana al inicio

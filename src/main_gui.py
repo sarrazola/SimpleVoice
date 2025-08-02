@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SimpleVoice - Aplicación de Escritorio
-Punto de entrada principal para la GUI
+Punto de entrada principal para la GUI 
 """
 
 import sys

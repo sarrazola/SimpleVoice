@@ -53,8 +53,8 @@ class VoiceRecorder:
         self.language = language  # Language for transcription
         self.model_name = model  # Whisper model
         
-        # Configurar logging
-        self.setup_logging()
+        # Obtener el logger ya configurado por la GUI
+        self.logger = logging.getLogger(__name__)
         
         self.log("🎙️  Initializing SimpleVoice...")
         self.log(f"📁 Temporary directory: {self.temp_dir}")
@@ -73,29 +73,9 @@ class VoiceRecorder:
         
         self.log("🚀 SimpleVoice ready to use!")
         
-    def setup_logging(self):
-        """Configure logging to file and callback"""
-        logs_dir = Path.home() / "SimpleVoice" / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        
-        log_file = logs_dir / f"simplevoice_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        
-        # Configure file logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
-        
-        self.logger = logging.getLogger(__name__)
-        self.log_file_path = log_file
-        
     def log(self, message: str, level: str = "INFO"):
-        """Send log both to file and GUI callback"""
-        # Log to file
+        """Send log both to stdout and GUI callback"""
+        # Log to stdout using the configured logger
         if level == "ERROR":
             self.logger.error(message)
         elif level == "WARNING":
@@ -105,6 +85,7 @@ class VoiceRecorder:
         
         # Send to GUI if callback exists
         if self.log_callback:
+            # We only send the message, as the GUI logger will handle formatting
             self.log_callback(message)
             
     def load_whisper_model(self):
@@ -142,7 +123,7 @@ class VoiceRecorder:
         self.log(f"🤖 Model updated: {model_name.upper()}")
         # Note: The model is loaded externally from the GUI to show progress
     
-    def start_recording(self):
+    def start_recording(self, hotkey: str = "F12"):
         """Start audio recording"""
         if self.is_recording:
             self.log("⚠️  Already recording", "WARNING")
@@ -151,7 +132,7 @@ class VoiceRecorder:
         self.log("🎵 STARTING RECORDING...")
         
         # Start notification
-        self.send_notification("🎤 Recording", "Speak now! Press F12 to stop", 2)
+        self.send_notification("🎤 Recording", f"Speak now! Press {hotkey} to stop", 2)
         
         self.is_recording = True
         self.audio_data = []
@@ -336,8 +317,4 @@ class VoiceRecorder:
                 
             self.log("🧹 Resources cleaned")
         except Exception as e:
-            self.log(f"❌ Error cleaning resources: {e}", "ERROR")
-    
-    def get_log_file_path(self):
-        """Get log file path"""
-        return self.log_file_path 
+            self.log(f"❌ Error cleaning resources: {e}", "ERROR") 
