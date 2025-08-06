@@ -1,18 +1,18 @@
 #!/bin/bash
 
 # SimpleVoice Launcher Script
-# Automatiza la instalación de dependencias y ejecución de SimpleVoice
+# Automates dependency installation and SimpleVoice execution
 
-set -e  # Salir si algún comando falla
+set -e  # Exit if any command fails
 
-# Colores para output
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Función para mostrar mensajes con color
+# Function to display colored messages
 print_status() {
     echo -e "${BLUE}[SimpleVoice]${NC} $1"
 }
@@ -29,56 +29,56 @@ print_error() {
     echo -e "${RED}[SimpleVoice]${NC} $1"
 }
 
-# Obtener el directorio donde está este script
+# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
-print_status "Iniciando SimpleVoice..."
-print_status "Directorio del proyecto: $PROJECT_ROOT"
+print_status "Starting SimpleVoice..."
+print_status "Project directory: $PROJECT_ROOT"
 
-# Cambiar al directorio del proyecto
+# Change to project directory
 cd "$PROJECT_ROOT"
 
-# Verificar si Python está instalado
+# Check if Python is installed
 if ! command -v python3 &> /dev/null; then
-    print_error "Python 3 no está instalado. Por favor instala Python 3 desde https://python.org"
+    print_error "Python 3 is not installed. Please install Python 3 from https://python.org"
     exit 1
 fi
 
-print_success "Python 3 encontrado: $(python3 --version)"
+print_success "Python 3 found: $(python3 --version)"
 
-# Verificar si pip está instalado
+# Check if pip is installed
 if ! command -v pip3 &> /dev/null; then
-    print_error "pip3 no está instalado. Por favor instala pip3"
+    print_error "pip3 is not installed. Please install pip3"
     exit 1
 fi
 
-# Crear entorno virtual si no existe
+# Create virtual environment if it doesn't exist
 VENV_DIR="$PROJECT_ROOT/.venv"
 if [ ! -d "$VENV_DIR" ]; then
-    print_status "Creando entorno virtual..."
+    print_status "Creating virtual environment..."
     python3 -m venv "$VENV_DIR"
-    print_success "Entorno virtual creado"
+    print_success "Virtual environment created"
 fi
 
-# Activar entorno virtual
-print_status "Activando entorno virtual..."
+# Activate virtual environment
+print_status "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
-# Función para verificar si un paquete está instalado
+# Function to check if a package is installed
 is_package_installed() {
     python3 -c "import $1" 2>/dev/null
 }
 
-# Verificar e instalar dependencias
-print_status "Verificando dependencias..."
+# Check and install dependencies
+print_status "Checking dependencies..."
 
 REQUIREMENTS_FILE="$PROJECT_ROOT/requirements-gui.txt"
 if [ -f "$REQUIREMENTS_FILE" ]; then
-    # Verificar si necesitamos instalar dependencias
+    # Check if we need to install dependencies
     NEED_INSTALL=false
     
-    # Lista de paquetes críticos para verificar
+    # List of critical packages to check
     CRITICAL_PACKAGES=("customtkinter" "whisper" "pyaudio" "pynput" "pyperclip")
     
     for package in "${CRITICAL_PACKAGES[@]}"; do
@@ -89,45 +89,45 @@ if [ -f "$REQUIREMENTS_FILE" ]; then
     done
     
     if [ "$NEED_INSTALL" = true ]; then
-        print_status "Instalando dependencias..."
+        print_status "Installing dependencies..."
         pip3 install -r "$REQUIREMENTS_FILE"
-        print_success "Dependencias instaladas"
+        print_success "Dependencies installed"
     else
-        print_success "Todas las dependencias están instaladas"
+        print_success "All dependencies are installed"
     fi
 else
-    print_warning "Archivo requirements-gui.txt no encontrado, intentando con requirements.txt"
+    print_warning "requirements-gui.txt file not found, trying requirements.txt"
     if [ -f "$PROJECT_ROOT/requirements.txt" ]; then
         pip3 install -r "$PROJECT_ROOT/requirements.txt"
     else
-        print_error "No se encontraron archivos de requirements"
+        print_error "No requirements files found"
         exit 1
     fi
 fi
 
-# Verificar permisos de micrófono en macOS
+# Check microphone permissions on macOS
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    print_status "Verificando permisos de micrófono en macOS..."
-    print_warning "IMPORTANTE: Si es la primera vez que ejecutas la aplicación,"
-    print_warning "macOS te pedirá permisos para acceder al micrófono."
-    print_warning "Por favor, acepta estos permisos para que SimpleVoice funcione correctamente."
+    print_status "Checking microphone permissions on macOS..."
+    print_warning "IMPORTANT: If this is the first time running the app,"
+    print_warning "macOS will ask for microphone permissions."
+    print_warning "Please accept these permissions for SimpleVoice to work correctly."
 fi
 
-# Ejecutar la aplicación
-print_status "Ejecutando SimpleVoice..."
+# Run the application
+print_status "Running SimpleVoice..."
 cd "$PROJECT_ROOT/src"
 
-# Verificar que el archivo principal existe
+# Check that the main file exists
 if [ ! -f "main_gui.py" ]; then
-    print_error "Archivo main_gui.py no encontrado en src/"
+    print_error "main_gui.py file not found in src/"
     exit 1
 fi
 
-# Ejecutar la aplicación con manejo de errores
+# Run the application with error handling
 if python3 main_gui.py; then
-    print_success "SimpleVoice se ejecutó correctamente"
+    print_success "SimpleVoice ran successfully"
 else
-    print_error "Error al ejecutar SimpleVoice"
-    print_status "Verifica que todas las dependencias estén correctamente instaladas"
+    print_error "Error running SimpleVoice"
+    print_status "Check that all dependencies are correctly installed"
     exit 1
 fi

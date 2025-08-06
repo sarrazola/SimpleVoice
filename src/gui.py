@@ -18,6 +18,7 @@ import queue
 import time
 import pystray
 from PIL import Image, ImageDraw
+import webbrowser
 
 # Importar módulos locales
 from recorder import VoiceRecorder
@@ -208,52 +209,89 @@ class SimpleVoiceGUI:
         
     def setup_help_content(self, parent):
         """Configurar el contenido de la sección de ayuda"""
-        self.help_text_template = """
-        🎙️ SimpleVoice - Voice Transcriptor
+        # Crear un frame scrollable para el contenido de ayuda
+        help_scrollable = ctk.CTkScrollableFrame(parent)
+        help_scrollable.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         
-        🌟 Open Source Alternative to Commercial Voice-to-Text Software
-        This project is completely FREE and open source!
+        # Configurar el texto principal
+        self.help_text_template = """🎙️ SimpleVoice - Voice Transcriptor
+
+🌟 Open Source Alternative to Commercial Voice-to-Text Software
+This project is completely FREE and open source!
+
+📖 How to use:
+1. Press {hotkey} or the "Start Recording" button to start
+2. Speak clearly into the microphone
+3. Press {hotkey} again or "Stop" to finish
+4. The text is automatically transcribed
+5. It's automatically copied to clipboard
+
+🔧 Features:
+• Global {hotkey} hotkey (configurable)
+• AI transcription with OpenAI Whisper
+• Auto-copy to clipboard
+• Multi-language support with auto-detection
+• Multiple AI models (Turbo, Base, Small, etc.)
+• Detailed system logs
+• Modern and friendly interface
+• 100% private - works offline
+
+📝 Notes:
+• Requires functional microphone
+• Optimized for multiple languages
+• Logs are saved in ~/SimpleVoice/logs/
+• Give microphone permissions to Terminal/Python
+
+🌐 Open Source Project:"""
         
-        📖 How to use:
-        1. Press {hotkey} or the "Start Recording" button to start
-        2. Speak clearly into the microphone
-        3. Press {hotkey} again or "Stop" to finish
-        4. The text is automatically transcribed
-        5. It's automatically copied to clipboard
-        
-        🔧 Features:
-        • Global {hotkey} hotkey (configurable)
-        • AI transcription with OpenAI Whisper
-        • Auto-copy to clipboard
-        • Multi-language support with auto-detection
-        • Multiple AI models (Turbo, Base, Small, etc.)
-        • Detailed system logs
-        • Modern and friendly interface
-        • 100% private - works offline
-        
-        📝 Notes:
-        • Requires functional microphone
-        • Optimized for multiple languages
-        • Logs are saved in ~/SimpleVoice/logs/
-        • Give microphone permissions to Terminal/Python
-        
-        🌐 Open Source Project:
-        • GitHub: https://github.com/sarrazola/SimpleVoice/
-        • License: MIT (most permissive open source license)
-        • Free to use, modify and distribute
-        • Report bugs or contribute features on GitHub
-        
-        💡 Alternative to paid solutions
-        """
-        
+        # Label principal con el texto
         self.help_label = ctk.CTkLabel(
-            parent,
+            help_scrollable,
             text=self.help_text_template.format(hotkey=self.selected_hotkey),
             font=ctk.CTkFont(size=14),
             justify="left",
             anchor="nw"
         )
-        self.help_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.help_label.grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 5), sticky="ew")
+        
+        # Botón clickeable para GitHub
+        self.github_button = ctk.CTkButton(
+            help_scrollable,
+            text="🔗 GitHub: https://github.com/sarrazola/SimpleVoice/",
+            command=self.open_github,
+            font=ctk.CTkFont(size=14, underline=True),
+            fg_color="transparent",
+            text_color=("blue", "lightblue"),
+            hover_color=("lightgray", "darkgray"),
+            cursor="hand2"
+        )
+        self.github_button.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+        
+        # Resto del texto
+        additional_text = """• License: MIT (most permissive open source license)
+• Free to use, modify and distribute
+• Report bugs or contribute features on GitHub
+
+💡 Alternative to paid solutions"""
+        
+        self.additional_label = ctk.CTkLabel(
+            help_scrollable,
+            text=additional_text,
+            font=ctk.CTkFont(size=14),
+            justify="left",
+            anchor="nw"
+        )
+        self.additional_label.grid(row=2, column=0, columnspan=2, padx=10, pady=(5, 10), sticky="ew")
+        
+        # Configurar el grid del frame scrollable
+        help_scrollable.grid_columnconfigure(0, weight=1)
+    
+    def open_github(self):
+        """Abrir el enlace de GitHub en el navegador"""
+        try:
+            webbrowser.open("https://github.com/sarrazola/SimpleVoice/")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir el enlace:\n{e}")
 
     def update_help_text(self):
         """Actualizar el texto de ayuda con la tecla seleccionada"""
