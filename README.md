@@ -19,15 +19,32 @@ SimpleVoice is a modern voice transcription tool that uses OpenAI Whisper to con
 - 🎯 **Multiple Whisper models** (Turbo, Base, Small, etc.)
 - 🔧 **Customizable configuration** for language and model settings
 
-## 🚀 Installation
+## 🚀 Quick Start
 
-### 1. Clone the project
+### 🍎 macOS (Automatic Setup)
+
+**One command installs everything:**
+
+```bash
+git clone https://github.com/sarrazola/SimpleVoice.git && cd SimpleVoice && ./install.sh
+```
+
+**That's it!** Now use SimpleVoice like any Mac app:
+- 🖱️ **Finder** → Applications → SimpleVoice.app
+- 🚀 **Launchpad** → Search "SimpleVoice"  
+
+
+The installer automatically handles dependencies, permissions, and creates a native .app bundle.
+
+### 📖 Manual Installation 
+
+#### 1. Clone the project
 ```bash
 git clone https://github.com/sarrazola/SimpleVoice.git
 cd SimpleVoice
 ```
 
-### 2. Install ffmpeg (required by Whisper)
+#### 2. Install ffmpeg (required by Whisper)
 ```bash
 # On macOS with Homebrew
 brew install ffmpeg
@@ -39,7 +56,7 @@ sudo apt update && sudo apt install ffmpeg
 choco install ffmpeg
 ```
 
-### 3. Install Python dependencies
+#### 3. Install Python dependencies
 ```bash
 # For GUI interface (recommended)
 pip install -r requirements-gui.txt
@@ -54,18 +71,25 @@ brew install portaudio
 pip install pyaudio
 ```
 
-### 4. Configure permissions (macOS)
+#### 4. Configure permissions (macOS)
 On macOS, you need to grant microphone permissions:
 1. Go to **System Settings** > **Privacy & Security** > **Microphone**
 2. Add **Terminal** or your preferred terminal application
 3. Add **Python** if it appears in the list
 
-## 🎯 Usage
+## 🎯 How to Use
 
-### GUI Interface (Recommended)
+### After Installation
+1. **Launch** SimpleVoice (from Applications, Launchpad, or terminal)
+2. **Configure** your preferences in Settings
+3. **Press F12** or click "Start Recording"
+4. **Speak clearly** into your microphone
+5. **Press F12 again** or click "Stop"
+6. **Text is transcribed** and automatically copied to clipboard
+
+### Manual Launch (All Platforms)
 ```bash
-cd src
-python main_gui.py
+cd src && python main_gui.py
 ```
 
 The GUI includes:
@@ -99,16 +123,6 @@ The GUI includes:
 python main.py
 ```
 
-## 🔧 Workflow
-
-1. **Start SimpleVoice**: `cd src && python main_gui.py`
-2. **Configure your preferences** in the Settings section
-3. **Press F12** or the "Start Recording" button
-4. **Speak clearly** into the microphone
-5. **Press F12 again** or "Stop" to finish
-6. **Text is automatically transcribed** and copied to clipboard
-7. **Paste wherever you need** with Cmd+V (macOS) or Ctrl+V (Windows/Linux)
-
 ## 🛠️ System Requirements
 
 - **Python 3.8+**
@@ -121,14 +135,22 @@ python main.py
 
 ```
 SimpleVoice/
+├── SimpleVoice.app/              # 🍎 macOS Application Bundle
+│   └── Contents/
+│       ├── Info.plist            # App configuration
+│       ├── MacOS/SimpleVoice     # Main executable
+│       └── Resources/            # App resources and icons
 ├── src/
 │   ├── main_gui.py      # Main GUI interface
 │   ├── main.py          # Terminal interface
 │   ├── gui.py           # GUI components
 │   └── recorder.py      # Recording and transcription logic
-├── requirements-gui.txt # GUI dependencies
-├── requirements.txt     # Basic dependencies
-└── README.md           # This file
+├── launch_simplevoice.sh         # 🚀 Smart launcher script
+├── install.sh                    # 🔧 Automatic installer (macOS)
+├── requirements-gui.txt          # GUI dependencies
+├── requirements.txt              # Basic dependencies
+├── APP_README.md                 # .app specific documentation
+└── README.md                     # This file
 ```
 
 ## 🤝 Contributing
