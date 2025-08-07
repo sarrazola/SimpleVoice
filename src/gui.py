@@ -72,6 +72,9 @@ class SimpleVoiceGUI:
         # Configurar system tray con manejo específico para macOS
         self.setup_system_tray()
         
+        # Workaround para bug de macOS - forzar actualización después de mostrar la ventana
+        self._apply_macos_window_fix()
+        
     def setup_window(self):
         """Configurar ventana principal"""
         self.root = ctk.CTk()
@@ -116,17 +119,68 @@ class SimpleVoiceGUI:
         logo_label = ctk.CTkLabel(sidebar_frame, text="SimpleVoice", font=ctk.CTkFont(size=20, weight="bold"))
         logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
+        # Crear botones con workaround para macOS
         home_button = ctk.CTkButton(sidebar_frame, text="🏠 Home", command=lambda: self.show_view("home"))
         home_button.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        self._add_macos_button_fix(home_button)
 
         settings_button = ctk.CTkButton(sidebar_frame, text="⚙️ Settings", command=lambda: self.show_view("settings"))
         settings_button.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        self._add_macos_button_fix(settings_button)
 
         help_button = ctk.CTkButton(sidebar_frame, text="❓ Help", command=lambda: self.show_view("help"))
         help_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        self._add_macos_button_fix(help_button)
 
         logs_button = ctk.CTkButton(sidebar_frame, text="📝 Logs", command=lambda: self.show_view("logs"))
         logs_button.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self._add_macos_button_fix(logs_button)
+
+    def _add_macos_button_fix(self, button):
+        """
+        Workaround para el bug de Tkinter en macOS donde los botones no responden
+        al primer clic sin movimiento del mouse. Este es un problema conocido en
+        macOS Sonoma y versiones recientes.
+        
+        Referencia: https://github.com/python/cpython/issues/110218
+        """
+        if sys.platform == "darwin":  # Solo en macOS
+            def on_enter(event):
+                # Forzar actualización de estado cuando el mouse entra
+                button.focus_set()
+                button.update_idletasks()
+                
+            def on_leave(event):
+                # Limpiar focus cuando el mouse sale
+                self.root.focus_set()
+                
+            # Bind a eventos de mouse
+            button.bind("<Enter>", on_enter)
+            button.bind("<Leave>", on_leave)
+
+    def _apply_macos_window_fix(self):
+        """
+        Aplicar workaround adicional para el bug de macOS con eventos de mouse.
+        Fuerza una actualización después de que la ventana esté completamente cargada.
+        """
+        if sys.platform == "darwin":  # Solo en macOS
+            def force_window_update():
+                try:
+                    # Forzar que la ventana procese todos los eventos pendientes
+                    self.root.update_idletasks()
+                    self.root.update()
+                    
+                    # Simular un pequeño movimiento interno para activar los eventos
+                    x = self.root.winfo_x()
+                    y = self.root.winfo_y()
+                    self.root.geometry(f"+{x}+{y}")
+                    
+                except Exception as e:
+                    # Fallar silenciosamente si hay algún problema
+                    pass
+                    
+            # Ejecutar el fix después de que la ventana esté completamente renderizada
+            self.root.after(100, force_window_update)
 
     def show_view(self, view_name):
         """Mostrar la vista seleccionada (home o help)"""
@@ -266,6 +320,7 @@ This project is completely FREE and open source!
             cursor="hand2"
         )
         self.github_button.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+        self._add_macos_button_fix(self.github_button)
         
         # Resto del texto
         additional_text = """• License: MIT (most permissive open source license)
@@ -598,6 +653,7 @@ This project is completely FREE and open source!
             command=self.toggle_recording
         )
         self.record_button.grid(row=0, column=0, pady=20, padx=20, sticky="ew")
+        self._add_macos_button_fix(self.record_button)
         
         # Instrucción
         self.instruction_label = ctk.CTkLabel(
