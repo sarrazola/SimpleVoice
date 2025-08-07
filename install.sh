@@ -73,10 +73,24 @@ if ! command -v pip3 &> /dev/null; then
 fi
 print_success "pip3 found"
 
-# Check audio tools (optional)
-if ! python3 -c "import pyaudio" 2>/dev/null; then
-    print_warning "PyAudio might require additional dependencies."
-    print_info "If you have issues, install portaudio: brew install portaudio"
+# Check and install PortAudio (required for PyAudio)
+print_step "Checking PortAudio dependencies..."
+if ! pkg-config --exists portaudio-2.0 2>/dev/null && ! brew list portaudio &>/dev/null; then
+    print_warning "PortAudio not found. This is required for PyAudio to work."
+    
+    if command -v brew &> /dev/null; then
+        print_step "Installing PortAudio via Homebrew..."
+        brew install portaudio
+        print_success "PortAudio installed successfully"
+    else
+        print_error "Homebrew not found. PortAudio installation required."
+        print_info "Please install Homebrew first: https://brew.sh"
+        print_info "Then run: brew install portaudio"
+        print_info "After that, re-run this installer."
+        exit 1
+    fi
+else
+    print_success "PortAudio is available"
 fi
 
 print_step "Setting up SimpleVoice..."
