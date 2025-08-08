@@ -240,12 +240,12 @@ class VoiceRecorder:
                 beam_size=1,
                 patience=1.0,
                 length_penalty=1.0,
-                suppress_tokens="",
+                suppress_tokens=-1,  # keep default suppression (e.g., [Music], [Laughter])
                 initial_prompt=None,
                 condition_on_previous_text=False,
                 compression_ratio_threshold=2.4,
                 logprob_threshold=-1.0,
-                no_speech_threshold=0.6
+                no_speech_threshold=0.7
             )
             
             transcript = result["text"].strip()
