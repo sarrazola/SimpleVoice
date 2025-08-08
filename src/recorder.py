@@ -240,7 +240,7 @@ class VoiceRecorder:
                 beam_size=1,
                 patience=1.0,
                 length_penalty=1.0,
-                suppress_tokens=-1,  # keep default suppression (e.g., [Music], [Laughter])
+                suppress_tokens="-1",  # keep default suppression (e.g., [Music], [Laughter])
                 initial_prompt=None,
                 condition_on_previous_text=False,
                 compression_ratio_threshold=2.4,
