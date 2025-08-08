@@ -93,6 +93,28 @@ else
     print_success "PortAudio is available"
 fi
 
+print_step "Checking FFmpeg dependency..."
+if ! command -v ffmpeg &> /dev/null; then
+    print_warning "FFmpeg not found. This is required by Whisper to process audio."
+    if command -v brew &> /dev/null; then
+        print_step "Installing FFmpeg via Homebrew..."
+        brew install ffmpeg || {
+            print_error "Failed to install FFmpeg automatically."
+            print_info "You can try manually: brew install ffmpeg"
+            exit 1
+        }
+        print_success "FFmpeg installed successfully"
+    else
+        print_error "Homebrew not found. FFmpeg installation required."
+        print_info "Please install Homebrew first: https://brew.sh"
+        print_info "Then run: brew install ffmpeg"
+        print_info "After that, re-run this installer."
+        exit 1
+    fi
+else
+    print_success "FFmpeg is available: $(ffmpeg -version | head -n 1)"
+fi
+
 print_step "Setting up SimpleVoice..."
 
 # Create symbolic link in /Applications if it doesn't exist

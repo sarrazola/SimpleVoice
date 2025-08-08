@@ -14,6 +14,7 @@ import warnings
 from pathlib import Path
 from typing import Callable, Optional
 from datetime import datetime
+import shutil
 
 # Silenciar warnings de Whisper
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
@@ -59,6 +60,12 @@ class VoiceRecorder:
         self.log("🎙️  Initializing SimpleVoice...")
         self.log(f"📁 Temporary directory: {self.temp_dir}")
         
+        # Verificar ffmpeg (requerido por whisper para carga/decodificación)
+        if shutil.which("ffmpeg") is None:
+            error_msg = "FFmpeg is not installed or not found in PATH. Install with 'brew install ffmpeg' on macOS."
+            self.log(f"❌ {error_msg}", "ERROR")
+            raise RuntimeError(error_msg)
+
         # Inicializar PyAudio
         self.audio = pyaudio.PyAudio()
         self.log("🎤 PyAudio initialized")

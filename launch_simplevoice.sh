@@ -105,6 +105,17 @@ else
     fi
 fi
 
+# Check FFmpeg availability (required by Whisper)
+if ! command -v ffmpeg &> /dev/null; then
+    print_error "FFmpeg is not installed. It is required to process audio."
+    if command -v brew &> /dev/null; then
+        print_status "You can install it with: brew install ffmpeg"
+    else
+        print_status "Please install FFmpeg and try again."
+    fi
+    exit 1
+fi
+
 # Check microphone permissions on macOS
 if [[ "$OSTYPE" == "darwin"* ]]; then
     print_status "Checking microphone permissions on macOS..."
