@@ -19,9 +19,12 @@ else:
 
 sys.path.insert(0, str(application_path))
 
+LAST_DEP_ERROR = ""
+
 def check_dependencies():
     """Verificar que todas las dependencias estén instaladas"""
     missing_deps = []
+    missing_tools = []
     
     try:
         import customtkinter
@@ -53,11 +56,29 @@ def check_dependencies():
     except ImportError:
         missing_deps.append("pystray")
     
+    global LAST_DEP_ERROR
     if missing_deps:
         print("❌ Faltan las siguientes dependencias:")
         for dep in missing_deps:
             print(f"   - {dep}")
         print("\n💡 Instala con: pip install " + " ".join(missing_deps))
+        LAST_DEP_ERROR = "Faltan dependencias de Python: " + ", ".join(missing_deps)
+        return False
+
+    # Verificar herramientas del sistema requeridas
+    try:
+        import shutil
+        if shutil.which("ffmpeg") is None:
+            missing_tools.append("ffmpeg")
+    except Exception:
+        missing_tools.append("ffmpeg")
+
+    if missing_tools:
+        print("❌ Faltan herramientas del sistema:")
+        for tool in missing_tools:
+            print(f"   - {tool}")
+        print("\n💡 En macOS instala con: brew install ffmpeg")
+        LAST_DEP_ERROR = "Faltan herramientas del sistema: " + ", ".join(missing_tools) + "\nInstala en macOS con: brew install ffmpeg"
         return False
     
     return True
@@ -74,7 +95,7 @@ def main():
                 import tkinter.messagebox as messagebox
                 messagebox.showerror(
                     "Error de Dependencias",
-                    "Faltan dependencias críticas. Por favor contacta al desarrollador."
+                    (LAST_DEP_ERROR or "Faltan dependencias críticas. Por favor contacta al desarrollador.")
                 )
             except:
                 pass
@@ -92,6 +113,9 @@ def main():
         
     except Exception as e:
         print(f"❌ Error iniciando aplicación: {e}")
+        # Mensaje específico si falta ffmpeg
+        if "ffmpeg" in str(e).lower():
+            print("💡 Parece que falta FFmpeg. En macOS instala con: brew install ffmpeg")
         
         # Mostrar error en GUI si es posible
         try:

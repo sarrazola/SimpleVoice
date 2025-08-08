@@ -65,6 +65,9 @@ fi
 print_status "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
+# Silence Tk deprecation warning to avoid cluttering logs
+export TK_SILENCE_DEPRECATION=1
+
 # Function to check if a package is installed
 is_package_installed() {
     python3 -c "import $1" 2>/dev/null
@@ -103,6 +106,17 @@ else
         print_error "No requirements files found"
         exit 1
     fi
+fi
+
+# Check FFmpeg availability (required by Whisper)
+if ! command -v ffmpeg &> /dev/null; then
+    print_error "FFmpeg is not installed. It is required to process audio."
+    if command -v brew &> /dev/null; then
+        print_status "You can install it with: brew install ffmpeg"
+    else
+        print_status "Please install FFmpeg and try again."
+    fi
+    exit 1
 fi
 
 # Check microphone permissions on macOS
