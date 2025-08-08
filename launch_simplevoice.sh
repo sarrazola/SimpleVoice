@@ -65,6 +65,9 @@ fi
 print_status "Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
+# Silence Tk deprecation warning to avoid cluttering logs
+export TK_SILENCE_DEPRECATION=1
+
 # Function to check if a package is installed
 is_package_installed() {
     python3 -c "import $1" 2>/dev/null

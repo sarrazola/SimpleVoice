@@ -69,11 +69,23 @@ class SimpleVoiceGUI:
         self.setup_hotkeys()
         self.init_recorder()
         
-        # Configurar system tray con manejo específico para macOS
-        self.setup_system_tray()
+        # Configurar system tray con manejo específico para macOS (se puede desactivar con SIMPLEVOICE_NO_TRAY=1)
+        if os.environ.get("SIMPLEVOICE_NO_TRAY", "0") != "1":
+            self.setup_system_tray()
+        else:
+            print("ℹ️ System tray desactivado por variable de entorno SIMPLEVOICE_NO_TRAY=1")
         
         # Workaround para bug de macOS - forzar actualización después de mostrar la ventana
         self._apply_macos_window_fix()
+
+        # Asegurar repintado inicial en macOS/VMs donde la ventana aparece gris
+        self._schedule_force_redraw()
+        # Atajo para refrescar manualmente (Cmd+R)
+        if sys.platform == "darwin":
+            try:
+                self.root.bind_all('<Command-r>', lambda e: self._force_full_redraw())
+            except Exception:
+                pass
         
     def setup_window(self):
         """Configurar ventana principal"""
@@ -181,6 +193,32 @@ class SimpleVoiceGUI:
                     
             # Ejecutar el fix después de que la ventana esté completamente renderizada
             self.root.after(100, force_window_update)
+
+    def _force_full_redraw(self):
+        """Forzar un repintado completo de la ventana."""
+        try:
+            # Toggle de tamaño 1px para forzar recomposición de todos los widgets
+            w = self.root.winfo_width()
+            h = self.root.winfo_height()
+            x = self.root.winfo_x()
+            y = self.root.winfo_y()
+            self.root.geometry(f"{w+1}x{h+1}+{x}+{y}")
+            self.root.update_idletasks()
+            self.root.update()
+            self.root.geometry(f"{w}x{h}+{x}+{y}")
+            self.root.update_idletasks()
+            self.root.update()
+        except Exception:
+            pass
+
+    def _schedule_force_redraw(self):
+        """Programar varios repintados al inicio para evitar ventana en gris."""
+        try:
+            # Ejecutar varios repintados en los primeros 2 segundos
+            for i, delay in enumerate([50, 150, 300, 600, 1000, 1500]):
+                self.root.after(delay, self._force_full_redraw)
+        except Exception:
+            pass
 
     def show_view(self, view_name):
         """Mostrar la vista seleccionada (home o help)"""
