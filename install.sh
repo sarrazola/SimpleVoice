@@ -77,7 +77,7 @@ print_success "pip3 found"
 print_step "Checking PortAudio dependencies..."
 if ! pkg-config --exists portaudio-2.0 2>/dev/null && ! brew list portaudio &>/dev/null; then
     print_warning "PortAudio not found. This is required for PyAudio to work."
-    
+
     if command -v brew &> /dev/null; then
         print_step "Installing PortAudio via Homebrew..."
         brew install portaudio
@@ -172,6 +172,49 @@ else
     print_warning "No requirements files found"
 fi
 
+print_step "Verifying PyAudio installation..."
+# Check if PyAudio can be imported; if not, try to build it with proper macOS flags
+if python - <<'PY'
+try:
+    import pyaudio  # noqa: F401
+    print("OK")
+except Exception as e:
+    print(f"FAIL: {e}")
+    raise SystemExit(1)
+PY
+then
+    print_success "PyAudio is available in the virtual environment"
+else
+    print_warning "PyAudio not available; attempting to build with Apple toolchain and Homebrew PortAudio"
+
+    # Resolve toolchain and PortAudio paths
+    APPLE_CLANG="$(xcrun --find clang 2>/dev/null || true)"
+    APPLE_CLANGXX="$(xcrun --find clang++ 2>/dev/null || true)"
+    MACOS_SDKROOT="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+    PORTAUDIO_PREFIX="$(brew --prefix portaudio 2>/dev/null || true)"
+
+    # Build env vars
+    export ARCHFLAGS="-arch arm64"
+    [ -n "$APPLE_CLANG" ] && export CC="$APPLE_CLANG"
+    [ -n "$APPLE_CLANGXX" ] && export CXX="$APPLE_CLANGXX"
+    [ -n "$MACOS_SDKROOT" ] && export SDKROOT="$MACOS_SDKROOT"
+    if [ -n "$PORTAUDIO_PREFIX" ]; then
+        export CPPFLAGS="-I$PORTAUDIO_PREFIX/include ${CPPFLAGS:-}"
+        export LDFLAGS="-L$PORTAUDIO_PREFIX/lib ${LDFLAGS:-}"
+        export PKG_CONFIG_PATH="$PORTAUDIO_PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+    fi
+
+    # Force a source build of PyAudio using the configured toolchain
+    if pip install --no-binary pyaudio --force-reinstall pyaudio; then
+        print_success "PyAudio built and installed successfully"
+    else
+        print_error "Failed to build PyAudio automatically"
+        print_info "You can try manually with the following command:"
+        echo "ARCHFLAGS=\"-arch arm64\" CC=\$(xcrun --find clang) CXX=\$(xcrun --find clang++) SDKROOT=\$(xcrun --sdk macosx --show-sdk-path) CPPFLAGS=\"-I\$(brew --prefix portaudio)/include\" LDFLAGS=\"-L\$(brew --prefix portaudio)/lib\" PKG_CONFIG_PATH=\"\$(brew --prefix portaudio)/lib/pkgconfig\" pip install --no-binary pyaudio --force-reinstall pyaudio"
+        exit 1
+    fi
+fi
+
 print_step "Configuring macOS permissions..."
 print_info "SimpleVoice needs the following permissions:"
 print_info "  • Microphone access (for speech recognition)"
@@ -199,58 +242,58 @@ cat > "$SCRIPT_DIR/SimpleVoice.app/Contents/Info.plist" << 'EOF'
 <dict>
     <key>CFBundleDevelopmentRegion</key>
     <string>es</string>
-    
+
     <key>CFBundleDisplayName</key>
     <string>SimpleVoice</string>
-    
+
     <key>CFBundleExecutable</key>
     <string>SimpleVoice</string>
-    
+
     <key>CFBundleIconFile</key>
     <string>SimpleVoice.icns</string>
-    
+
     <key>CFBundleIdentifier</key>
     <string>com.simplevoice.app</string>
-    
+
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
-    
+
     <key>CFBundleName</key>
     <string>SimpleVoice</string>
-    
+
     <key>CFBundlePackageType</key>
     <string>APPL</string>
-    
+
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
-    
+
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
-    
+
     <key>LSMinimumSystemVersion</key>
     <string>10.14</string>
-    
+
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
-    
+
     <key>NSHighResolutionCapable</key>
     <true/>
-    
+
     <key>NSMicrophoneUsageDescription</key>
     <string>SimpleVoice needs microphone access to convert your voice to text.</string>
-    
+
     <key>NSAppleEventsUsageDescription</key>
     <string>SimpleVoice needs to control applications to automate text writing.</string>
-    
+
     <key>NSAccessibilityUsageDescription</key>
     <string>SimpleVoice needs accessibility permissions to write text in other applications.</string>
-    
+
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2024 SimpleVoice. All rights reserved.</string>
-    
+
     <key>LSBackgroundOnly</key>
     <false/>
-    
+
     <key>LSUIElement</key>
     <false/>
 </dict>
@@ -280,7 +323,7 @@ else
         "$HOME/Downloads/SimpleVoice"
         "/Applications/SimpleVoice"
     )
-    
+
     PROJECT_DIR=""
     for dir in "${SEARCH_DIRS[@]}"; do
         if [ -f "$dir/launch_simplevoice.sh" ] && [ -d "$dir/src" ]; then
@@ -288,7 +331,7 @@ else
             break
         fi
     done
-    
+
     # Si no se encuentra, mostrar diálogo de error
     if [ -z "$PROJECT_DIR" ]; then
         osascript -e 'display dialog "Could not find SimpleVoice. Please make sure the project is in ~/Documents/GitHub/SimpleVoice or another standard location." buttons {"OK"} default button "OK" with icon stop'
@@ -326,22 +369,22 @@ print_step "Creating app icon..."
 create_icon() {
     ICON_DIR="$SCRIPT_DIR/SimpleVoice.app/Contents/Resources"
     ICONSET_DIR="$SCRIPT_DIR/SimpleVoice.iconset"
-    
+
     # Create iconset directory
     mkdir -p "$ICONSET_DIR"
-    
+
     # Use SimpleVoice custom logo
     CUSTOM_LOGO="$SCRIPT_DIR/src/logo/simple_voice.png"
-    
+
     # Check if we have the necessary tools and custom logo
-    if command -v sips &> /dev/null && [ -f "$CUSTOM_LOGO" ]; then        
+    if command -v sips &> /dev/null && [ -f "$CUSTOM_LOGO" ]; then
         print_success "Using custom logo: $CUSTOM_LOGO"
-        
+
         # Resize logo to 1024x1024 if necessary
         sips -z 1024 1024 "$CUSTOM_LOGO" --out "$SCRIPT_DIR/temp_1024.png" &> /dev/null
-        
+
         if [ -f "$SCRIPT_DIR/temp_1024.png" ]; then
-            
+
             # Create all necessary sizes using sips
             sips -z 16 16 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_16x16.png" &> /dev/null
             sips -z 32 32 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_16x16@2x.png" &> /dev/null
@@ -353,16 +396,16 @@ create_icon() {
             sips -z 512 512 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_256x256@2x.png" &> /dev/null
             sips -z 512 512 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_512x512.png" &> /dev/null
             sips -z 1024 1024 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_512x512@2x.png" &> /dev/null
-            
+
             # Create .icns file
             iconutil -c icns "$ICONSET_DIR" -o "$ICON_DIR/SimpleVoice.icns" 2>/dev/null
-            
+
             if [ $? -eq 0 ]; then
                 print_success "Icon created successfully"
             else
                 print_warning "Could not create .icns file"
             fi
-            
+
             # Clean temporary files
             rm -f "$SCRIPT_DIR/temp_1024.png"
         else
@@ -373,15 +416,15 @@ create_icon() {
             print_warning "Custom logo not found: $CUSTOM_LOGO"
             print_info "Will create a basic icon instead"
         fi
-        
+
         if ! command -v sips &> /dev/null; then
             print_warning "sips not available. Could not create icon."
         fi
-        
+
         # Fallback: create basic icon if no custom logo
         create_fallback_icon
     fi
-    
+
     # Clean temporary files
     rm -rf "$ICONSET_DIR"
 }
@@ -389,7 +432,7 @@ create_icon() {
 # Function to create basic fallback icon
 create_fallback_icon() {
     print_info "Creating basic icon..."
-    
+
     # Create simple SVG icon as fallback
     cat > "$SCRIPT_DIR/temp_icon.svg" << 'SVGEOF'
 <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
@@ -399,33 +442,33 @@ create_fallback_icon() {
       <stop offset="100%" style="stop-color:#2E5BBA;stop-opacity:1" />
     </linearGradient>
   </defs>
-  
+
   <!-- Fondo circular -->
   <circle cx="512" cy="512" r="450" fill="url(#grad1)" stroke="#1B4F8C" stroke-width="20"/>
-  
+
   <!-- Micrófono -->
   <rect x="456" y="300" width="112" height="200" rx="56" ry="56" fill="white" opacity="0.9"/>
-  
+
   <!-- Base del micrófono -->
   <rect x="486" y="500" width="52" height="80" fill="white" opacity="0.9"/>
-  
+
   <!-- Stand del micrófono -->
   <rect x="400" y="580" width="224" height="20" rx="10" ry="10" fill="white" opacity="0.9"/>
-  
+
   <!-- Ondas de sonido -->
   <path d="M 620 420 Q 660 420 660 460 Q 660 500 620 500" stroke="white" stroke-width="8" fill="none" opacity="0.7"/>
   <path d="M 640 400 Q 700 400 700 460 Q 700 520 640 520" stroke="white" stroke-width="8" fill="none" opacity="0.5"/>
   <path d="M 660 380 Q 740 380 740 460 Q 740 540 660 540" stroke="white" stroke-width="8" fill="none" opacity="0.3"/>
 </svg>
 SVGEOF
-    
-    if command -v sips &> /dev/null; then        
+
+    if command -v sips &> /dev/null; then
         # Convert SVG to 1024x1024 PNG
         qlmanage -t -s 1024 -o "$SCRIPT_DIR" "$SCRIPT_DIR/temp_icon.svg" 2>/dev/null
-        
+
         if [ -f "$SCRIPT_DIR/temp_icon.svg.png" ]; then
             mv "$SCRIPT_DIR/temp_icon.svg.png" "$SCRIPT_DIR/temp_1024.png"
-            
+
             # Create all necessary sizes using sips
             sips -z 16 16 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_16x16.png" &> /dev/null
             sips -z 32 32 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_16x16@2x.png" &> /dev/null
@@ -437,15 +480,15 @@ SVGEOF
             sips -z 512 512 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_256x256@2x.png" &> /dev/null
             sips -z 512 512 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_512x512.png" &> /dev/null
             sips -z 1024 1024 "$SCRIPT_DIR/temp_1024.png" --out "$ICONSET_DIR/icon_512x512@2x.png" &> /dev/null
-            
+
             # Create .icns file
             iconutil -c icns "$ICONSET_DIR" -o "$ICON_DIR/SimpleVoice.icns" 2>/dev/null
-            
+
             # Clean temporary files
             rm -f "$SCRIPT_DIR/temp_1024.png"
         fi
     fi
-    
+
     # Clean temporary files
     rm -f "$SCRIPT_DIR/temp_icon.svg"
 }
